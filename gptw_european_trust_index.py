@@ -1,33 +1,39 @@
 import pandas as pd
 import os
 from pathlib import Path
-import tkinter
 from tkinter.filedialog import askopenfilename, asksaveasfilename, askdirectory
 import pyreadstat
-
+import re
 
 path_user = Path.home()
 path_gptw = path_user.joinpath('Opinion AS\Opinion SharePoint - Great Place To Work')
 path_data = path_gptw.joinpath('2024\Europeisk Trust Index/03 Data/01 Top line')
+path_data = path_gptw.joinpath('2024\Europeisk Trust Index/03 Data')
 
 
 country_codes_file = path_user.joinpath('Opinion AS/Opinion SharePoint - Avinor RVU og ASQ/Rapportering/Syntax/oppslagsdata/countries_alpha2_alpha3_english_labels.csv')
 temp = pd.read_csv(country_codes_file, encoding='ISO8859-15')
 country_alpha2 = temp.set_index('Label')['alpha-2']
 
-files = [f for f in os.listdir(path_data) if f.endswith('.sav')]
+#files = [f for f in os.listdir(path_data) if f.endswith('.sav')]
+files = [f for f in os.listdir(path_data) if re.match('(ON.132596.*.sav)',f)]
+
+print('\n'.join(files))
 
 all_data = {}
 all_meta = {}
+all_files = {}
 
 for file in files:
     print(file)
     (df, meta) = pyreadstat.read_sav(path_data.joinpath(file))
     value_labels = meta.variable_value_labels
-    country = df['dcountry'].drop_duplicates() #'_'.join(df['dcountry'].map(value_labels['dcountry']).unique())
-    print(country.map(value_labels['dcountry']))
+    country = df['dcountry'].drop_duplicates().map(value_labels['dcountry']).map(country_alpha2)
+    print(country)
+    print(df)
     all_data[country.values[0]] = df
     all_meta[country.values[0]] = meta
+    all_files[country.values[0]] = file
     input('Press Enter to continue')
 
 
@@ -51,52 +57,97 @@ merge_vars = [
     'Q077', 'Q078', 'Q079', 'Q080', 'Q081', 'Q082', 'Q083', 'Q086', 
     'qtime']
 
-
 merge_vars_with_value_labels = [v for v in merge_vars if v not in ['record','date','zipcode','Q_SCREEN','Q085','qtime']]
+drop_vars = ['age_group']
 
 
 template_meta = all_meta[list(all_meta.keys())[0]]
-template_value_labels = template_meta.variable_value_labels
-template_var_labels = template_meta.column_names_to_labels 
 
+template_value_labels = template_meta.variable_value_labels
 template_value_labels = pd.Series(template_value_labels)[merge_vars_with_value_labels]
+
+template_var_labels = template_meta.column_names_to_labels 
 template_var_labels = pd.Series(template_var_labels)[merge_vars]
 
 country_labels = template_value_labels['dcountry']
 country_codes = pd.Series(country_labels).map(country_alpha2)
 
 
+# SAMMENLIGNE META OG SLÅ SAMMEN DATA
+
+df_acc = None 
+value_labels_acc = template_value_labels.copy()
+var_labels_acc = template_var_labels.copy()
+
 for key in all_data.keys():
-    print(country_labels[key])
+    print('\n\nCountry: '+key)
     meta = all_meta[key]
     df = all_data[key]
+    df = df.drop(columns=drop_vars, errors='ignore')
     #
     # Check value labels and variable labels
-    this_value_labels = pd.Series(meta.variable_value_labels)[merge_vars_with_value_labels]
-    this_var_labels = pd.Series(meta.column_names_to_labels )[merge_vars]
+    this_value_labels = pd.Series(meta.variable_value_labels)
+    this_var_labels = pd.Series(meta.column_names_to_labels)
     #
-    print('Mismatch value labels:')
-    this_value_labels[this_value_labels != template_value_labels]
-    print('Mismatch variable labels:')
-    this_var_labels[this_var_labels != template_var_labels]
+    print('\nCompare value labels:')
+    test1 = this_value_labels.reindex(merge_vars_with_value_labels).compare(template_value_labels).stack()
+    if len(test1.index)>0:
+        test1 = test1.apply(pd.Series).stack().unstack(level=1)
+        test1.loc[(test1['self'] != test1['other']),'Mismatch'] = 'MISMATCH'
+        print(test1.fillna(''))
+    print('\nCompare variable labels:')
+    test2 = this_var_labels.reindex(merge_vars).compare(template_var_labels).stack()
+    if len(test2.index)>0:
+        print(test2)
+    input('\nPress Enter to continue')
     #
-    # Add country label in country variables
-    code = country_codes[key]
-    country_vars = [v for v in df.columns if v not in merge_vars]
-    rename_vars = {v: code+"_"+v for v in country_vars if not(v.startswith(code))}
-    # Rename vars in df and meta
+    # Move extra variables to end
+    extra_vars = [v for v in df.columns if v not in merge_vars]
+    df = pd.concat([df.drop(columns=extra_vars),df[extra_vars]], axis=1)
+    # Add prefix country code in df and meta
+    rename_vars = {v: key+"_"+v for v in extra_vars if not(v.startswith(key))}
+    new_value_labels = this_value_labels[[v for v in extra_vars if v in this_value_labels.index]]
+    new_var_labels = this_var_labels[extra_vars]
     df = df.rename(columns=rename_vars)
-    new_val_labels = {rename_vars.get(var, var):labels for var,labels in this_value_labels if var in country_vars}
-    new_var_labels = {rename_vars.get(var, var):labels for var,labels in this_var_labels if var in country_vars}
+    new_value_labels = new_value_labels.rename(rename_vars)
+    new_var_labels = new_var_labels.rename(rename_vars)
+    #
+    # Combine data
+    value_labels_acc = pd.concat([value_labels_acc, new_value_labels])
+    var_labels_acc = pd.concat([var_labels_acc, new_var_labels])
+    df_acc = pd.concat([df_acc, df])
+
+
+# Sjekk labels for Language
+language_labels = {}
+for k in all_meta.keys():
+    language_labels[k] = all_meta[k].variable_value_labels['Q_LANGUAGE']
+
+print(pd.DataFrame(language_labels).T)
 
 
 
-all_age_groups = {}
-for key, meta in all_meta.items():
-    code = country_codes[key]
-    print(code)
-    all_age_groups[code]= meta.variable_value_labels.get('age_group',{})
+df_acc['unik_ID'] = df_acc['dcountry']*100000+df_acc['record']
+df_acc['date_str'] = pd.to_datetime(((df_acc['date']/86400)-141428), unit = 'D').dt.strftime('%Y/%m/%d')
+df_acc['country_code'] = df_acc['dcountry'].map(country_codes)
+
+# Variable labels: behold tekst etter ":" (fjerner variabelnavn)
+var_labels_acc = pd.Series(var_labels_acc).str.split(":", n=1, expand=True)[1]
+var_labels_acc = var_labels_acc.str.strip(" :")
+var_labels_acc['dcountry'] = 'Country'
+var_labels_acc['country_code'] = 'Country code'
+
+output_file = asksaveasfilename(initialdir=path_data, initialfile='Combined_data.sav')
+
+variable_format = {v:'F1.0' for v in merge_vars}
+variable_format['date'] = 'Date'
+
+pyreadstat.write_sav(
+    df_acc, 
+    output_file, 
+    column_labels=var_labels_acc.to_dict(), 
+    variable_value_labels=value_labels_acc.to_dict(),
+    variable_format=variable_format
+)
 
 
-
-df = pd.DataFrame()

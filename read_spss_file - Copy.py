@@ -12,31 +12,13 @@ root = tkinter.Tk()
 root.withdraw()
 
 
-
 spss_file = askopenfilename(initialdir=path)
-path = Path(spss_file).parent
-print('\Path:')
-print(path)
-
-print('\nLeser fil: ')
-print(spss_file)
-
 
 (df, meta) = pyreadstat.read_sav(spss_file)
 
-print('\nDataFrame df:\n')
-print(df)
-
 value_labels = meta.variable_value_labels
-col_labels = meta.column_names_to_labels 
-
-print('\nvalue_labels: \n')
-print(pd.Series(value_labels))
-
-print('\ncol_labels: \n')
-print(pd.Series(col_labels))
-
-
+var_labels = meta.column_names_to_labels 
 
 ####################################
+print(df)
 

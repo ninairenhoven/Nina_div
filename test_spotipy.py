@@ -1,5 +1,6 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import pandas as pd
 
 SPOTIPY_CLIENT_ID = "4b0c8eeed0da48f69f96f89b7f5507dd"
 SPOTIPY_CLIENT_SECRET = "2796f1fefcbc4515872a8c2ac6e0724a"
@@ -19,7 +20,7 @@ while results['next']:
 for album in albums:
     print(album['name'])
 
-
+playlist_link = "https://open.spotify.com/playlist/3KTnYea8wFbVRLYfBeLCLs"
 
 #Peaceful piano
 playlist_link = "https://open.spotify.com/playlist/37i9dQZF1DX4sWSpwq3LiO"
@@ -42,9 +43,12 @@ results = sp.playlist_items(playlist_id)
 
 results = sp.playlist_items(pl_id)
 
+
+
+
 # Hent spillelisteinnhold
-def get_playlist_tracks(playlist_id):
-    results = sp.playlist_tracks(playlist_id)
+def get_playlist_items(playlist_id):
+    results = sp.playlist_items(playlist_id)
     tracks = results['items']
     #
     # Hent flere spor hvis spillelisten er stor
@@ -55,4 +59,16 @@ def get_playlist_tracks(playlist_id):
     return tracks
 
 
-tracks = get_playlist_tracks(playlist_id)
+def get_track_info(tracks):
+    df = pd.DataFrame(columns=['Title', 'Artist'])
+    for i, track in enumerate(tracks):
+        title = track['track']['name']
+        artists = track['track']['artists']
+        artists_str = ', '.join([a['name'] for a in artists])
+        df.loc[i+1] = [title, artists_str]
+    return df
+         
+
+tracks = get_playlist_items(playlist_id)
+track_info = get_track_info(tracks)
+print(track_info)

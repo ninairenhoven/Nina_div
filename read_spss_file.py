@@ -24,6 +24,7 @@ print(spss_file)
 
 (df, meta) = pyreadstat.read_sav(spss_file)
 
+
 print('\nDataFrame df:\n')
 print(df)
 
@@ -40,3 +41,6 @@ print(pd.Series(col_labels))
 
 ####################################
 
+kommune_labels = pd.Series(value_labels['BOSTED_KommuneNummer'])
+kommune_labels = 'K-'+kommune_labels.index.astype(int).astype(str).str.zfill(4) +' '+ kommune_labels
+kommune_labels.index = kommune_labels.index.astype(int)

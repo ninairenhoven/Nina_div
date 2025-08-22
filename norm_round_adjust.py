@@ -38,3 +38,24 @@ def norm_round_adjust(input, ndec=0):
 
 
 res = norm_round_adjust(input,3)
+
+
+
+def round_adjust(input, ndec=1):
+    """Runder input series til ndec desimaler
+    Tilpasser slik at summen blir et heltall"""
+    target_sum = input.sum().round(0)
+    x = input.round(ndec)
+    rounded_sum = x.sum()
+    diff = (target_sum - rounded_sum).round(ndec)
+    if diff != 0:
+        # Number of items to adjust
+        n_adjust = int(abs(diff*(10**ndec)))
+        # Adjustment per item
+        adjustment = np.sign(diff)*(10**-ndec)
+        # Adjust n items
+        x.iloc[0:n_adjust] = x.iloc[0:n_adjust] + adjustment
+    return x
+
+        
+

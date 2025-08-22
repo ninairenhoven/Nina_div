@@ -48,7 +48,7 @@ LEVEL_MARKER_SIZES = [0.008]*4  # Markørstørrelse for nivå 1-4
 LEVEL_OUTLINE_COLOR = '#FFFFFF' # Hvit farge på de store sirklene som markerer nivåer
 
 # Linjestiler
-LEVEL_LINE_WIDTH = [1]*4#[1, 0.8, 0.7, 0.6]  # Linjetykkelser for nivå 1-4
+LEVEL_LINE_WIDTH = [1]*4 #[1, 0.8, 0.7, 0.6]  # Linjetykkelser for nivå 1-4
 LINE_ALPHA = 0.3                 # Gjennomsiktighet for linjer (0 = usynlig linje)
 #LINE_TYPE = 'straight'  # ('curved' eller 'straight')
 LINE_TYPE = 'curved'  # ('curved' eller 'straight')
@@ -212,7 +212,52 @@ def build_association_hierarchy(df):
 
 # ===== VINKLER OG POSISJONER =====
 
-def calculate_positions(hierarchy):
+
+
+def count_children(node, max_depth=3):
+    """
+    Teller antall barn for en node rekursivt.
+    
+    Parameters:
+    -----------
+    node : dict
+        Node i hierarkiet.
+    max_depth : int, optional
+        Maksimal dybde å telle.
+        
+    Returns:
+    --------
+    int
+        Antall barn.
+    """
+    if max_depth <= 0 or 'children' not in node or not node['children']:
+        return 0
+    
+    count = len(node['children'])
+    for child in node['children'].values():
+        count += count_children(child, max_depth - 1)
+    
+    return count
+
+
+def pol2cart(radius, angle):
+    """
+    Konverterer polare koordinater til kartesiske.
+    
+    Parameters:
+    -----------
+    radius : float
+    angle : float
+        
+    Returns:
+    --------
+    tuple
+        (x, y) koordinater.
+    """
+    return radius * np.cos(angle), radius * np.sin(angle)
+
+
+def calculate_positions_radial(hierarchy):
     """
     Beregner posisjoner for alle assosiasjoner i hierarkiet.
     
@@ -257,7 +302,7 @@ def calculate_positions(hierarchy):
         
         # Beregn posisjoner for barn rekursivt
         if 'children' in hierarchy[key] and len(hierarchy[key]['children']) > 0:
-            calculate_child_positions(
+            calculate_child_positions_radial(
                 children_dict=hierarchy[key]['children'], 
                 positions=positions, 
                 parent_key=key, 
@@ -276,7 +321,8 @@ def calculate_positions(hierarchy):
     
     return positions
 
-def calculate_child_positions(children_dict, positions, parent_key,
+
+def calculate_child_positions_radial(children_dict, positions, parent_key,
                              start_angle, end_angle, current_level, angle_per_node):
     """
     Beregner posisjoner for barn rekursivt.
@@ -331,7 +377,7 @@ def calculate_child_positions(children_dict, positions, parent_key,
             child_start = end_angle - (i + 1) * angle_step
             child_end = end_angle - i * angle_step
             
-            calculate_child_positions(
+            calculate_child_positions_radial(
                 children_dict=children_dict[child_key]['children'],
                 positions=positions,
                 parent_key=full_key,
@@ -341,50 +387,79 @@ def calculate_child_positions(children_dict, positions, parent_key,
                 angle_per_node=angle_per_node
             )
 
-
-def count_children(node, max_depth=3):
+def calculate_positions_linear(hierarchy, orientation='horizontal', spacing=1.0, level_spacing=2.0):
     """
-    Teller antall barn for en node rekursivt.
+    Enklere versjon som beregner posisjoner for lineært dendrogram.
     
     Parameters:
     -----------
-    node : dict
-        Node i hierarkiet.
-    max_depth : int, optional
-        Maksimal dybde å telle.
+    hierarchy : dict
+        Hierarkisk struktur av assosiasjoner
+    orientation : str
+        'horizontal' eller 'vertical'
+    spacing : float
+        Avstand mellom elementer på samme nivå
+    level_spacing : float
+        Avstand mellom nivåer
         
     Returns:
     --------
-    int
-        Antall barn.
+    dict
+        Dictionary med posisjoner {'node_key': (x, y)}
     """
-    if max_depth <= 0 or 'children' not in node or not node['children']:
-        return 0
+    positions = {}
     
-    count = len(node['children'])
-    for child in node['children'].values():
-        count += count_children(child, max_depth - 1)
+    # Samle alle noder per nivå
+    levels = {}  # {level: [node_keys]}
     
-    return count
-
-
-def pol2cart(radius, angle):
-    """
-    Konverterer polare koordinater til kartesiske.
+    def collect_nodes(node_dict, parent_key="", current_level=0):
+        """Samler alle noder organisert per nivå"""
+        if current_level >= MAX_LEVELS:
+            return
+            
+        if current_level not in levels:
+            levels[current_level] = []
+            
+        # Legg til noder på dette nivået
+        for child_key, child_node in node_dict.items():
+            if child_key == "NaN":
+                continue
+                
+            full_key = f"{parent_key}|{child_key}" if parent_key else child_key
+            levels[current_level].append(full_key)
+            
+            # Rekursivt for barn
+            if 'children' in child_node:
+                collect_nodes(child_node['children'], full_key, current_level + 1)
     
-    Parameters:
-    -----------
-    radius : float
-        Radius.
-    angle : float
-        Vinkel i radianer.
-        
-    Returns:
-    --------
-    tuple
-        (x, y) koordinater.
-    """
-    return radius * np.cos(angle), radius * np.sin(angle)
+    # Samle alle noder
+    collect_nodes(hierarchy)
+    
+    # Beregn posisjoner for alle nivåer
+    for level, nodes in levels.items():
+        for i, node_key in enumerate(nodes):
+            if orientation.lower() == 'horizontal':
+                # Horisontal: nivåer går fra venstre til høyre, elementer fordeles vertikalt
+                x = level * level_spacing
+                y = (i - len(nodes)/2 + 0.5) * spacing
+            else:  # vertical
+                # Vertikal: nivåer går fra topp til bunn, elementer fordeles horisontalt
+                x = (i - len(nodes)/2 + 0.5) * spacing
+                y = -level * level_spacing
+            
+            positions[node_key] = (x, y, 0)
+    
+    # Rot-posisjon
+    if orientation.lower() == 'horizontal':
+        positions['center'] = (-level_spacing, 0)
+    else:
+        positions['center'] = (0, level_spacing)
+    
+    print(f"Beregnet posisjoner for {len(positions)} noder")
+    print(f"Nivåer: {list(levels.keys())}")
+    print(f"Noder per nivå: {[len(nodes) for nodes in levels.values()]}")
+    
+    return positions
 
 
 # ===== VISUALISERING =====
@@ -663,7 +738,7 @@ def place_text_radially(ax, text, radius, angle, fontsize, color, max_length, bo
             fontweight='bold' if bold else 'normal', color=color, zorder=6)
 
 
-def create_visualization(hierarchy, title_text=None, max_levels=None, save_path=None):
+def create_visualization(hierarchy, orient=None, title_text=None, max_levels=None, save_path=None):
     """
     Lager visualiseringen basert på hierarkiet.
     
@@ -691,9 +766,24 @@ def create_visualization(hierarchy, title_text=None, max_levels=None, save_path=
     # Spør brukeren om tekst i midten hvis ikke spesifisert
     if title_text is None:
         title_text = input("Skriv inn tekst som skal vises i midten (trykk Enter for tom tekst): ") or ""
-    
+        
+    if not orient:
+            orientation = 'radial'
+    else:
+        orient_lower = str(orient).lower().strip()
+        if orient_lower in ['h', 'horizontal']:
+            orientation = 'horizontal'
+        elif orient_lower in ['v', 'vertical']:
+            orientation = 'vertical'
+        else:  # Alt annet (r, radial, ugyldig) -> radial
+            orientation = 'radial'
+
     # Beregn posisjoner for alle noder
-    positions = calculate_positions(hierarchy)
+    if orientation=='radial':
+        positions = calculate_positions_radial(hierarchy)
+    
+    else:
+        positions = calculate_positions_linear(hierarchy, orientation)
     
     # Oppretter figur med spesifisert bakgrunnsfarge og størrelse
     fig = plt.figure(figsize=FIGSIZE, facecolor=BACKGROUND_COLOR)
@@ -735,7 +825,7 @@ def create_visualization(hierarchy, title_text=None, max_levels=None, save_path=
 
 # ===== HOVEDFUNKSJON =====
 
-def create_association_dendrogram(excel_file=None, title_text=None, save_path=None):
+def create_association_dendrogram(excel_file=None, title_text=None, save_path=None, orient=None):
     """
     Hovedfunksjon som kombinerer datainnlesing og visualisering.
     
@@ -765,7 +855,7 @@ def create_association_dendrogram(excel_file=None, title_text=None, save_path=No
         actual_max_levels = min(MAX_LEVELS, len(df.columns))
         
         # Lag visualisering
-        create_visualization(hierarchy, title_text, actual_max_levels, save_path)
+        create_visualization(hierarchy, orient, title_text, actual_max_levels, save_path)
 
         return hierarchy, df
     else:
@@ -779,7 +869,8 @@ if __name__ == "__main__":
     parser.add_argument('--data', help='Filsti til Excel-filen med assosiasjonsdata')
     parser.add_argument('--title', help='Tekst som skal vises i sentrum (standard: tom tekst)')
     parser.add_argument('--save', help='Filsti for å lagre visualiseringen')
+    parser.add_argument('--orient', help='[r]adial, [h]orizontal eller [v]ertical')
     
     args = parser.parse_args()
     
-    h, df = create_association_dendrogram(args.data, args.title, args.save)
+    h, df = create_association_dendrogram(args.data, args.title, args.save, args.orient)

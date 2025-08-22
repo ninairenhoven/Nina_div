@@ -42,10 +42,10 @@ COLOR_PALETTE = [
 
 # Farger og størrelser for sirkler
 CENTER_CIRCLE_COLOR = '#87CEFA'  # Lyseblå bakgrunn for sentrum
+CIRCLE_OUTLINE_COLOR = '#FFFFFF' # Hvit farge på de store sirklene som markerer nivåer
 CENTER_CIRCLE_ALPHA = 0.7        # Gjennomsiktighet for sentrum-sirkel
 PRIMARY_CIRCLE_SIZE = 0.018      # Størrelse på primærassosiasjons-sirkler
 SECONDARY_CIRCLE_SIZE = 0.012    # Størrelse på sekundærassosiasjons-sirkler
-CIRCLE_OUTLINE_COLOR = '#FFFFFF' # Hvit farge på de store sirklene som markerer nivåer
 
 # Fontstørrelser
 CENTER_FONT_SIZE = 48            # Fontstørrelse for sentrum-tekst
@@ -67,7 +67,7 @@ PRIMARY_TEXT_COLOR = '#333333'   # Farge på primærassosiasjonstekst
 SECONDARY_TEXT_COLOR = '#555555' # Farge på sekundærassosiasjonstekst
 
 # Tekstplassering
-TEXT_OFFSET = 0.03               # Avstand fra sirkel til tekst
+TEXT_OFFSET = 0.03               # Avstand fra markør til tekst
 
 # ===== HOVEDFUNKSJON =====
 

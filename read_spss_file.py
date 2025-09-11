@@ -44,3 +44,22 @@ print(pd.Series(col_labels))
 kommune_labels = pd.Series(value_labels['BOSTED_KommuneNummer'])
 kommune_labels = 'K-'+kommune_labels.index.astype(int).astype(str).str.zfill(4) +' '+ kommune_labels
 kommune_labels.index = kommune_labels.index.astype(int)
+
+
+
+
+#========================================================================
+# Labels til excel
+#========================================================================
+
+labels = pd.Series(col_labels).to_frame(name='Variable label')
+
+vlabels = pd.Series(value_labels)
+vlabels = vlabels.apply(lambda d: {int(k):v for k,v in d.items()})
+
+labels['Values'] =  vlabels.apply(lambda d: set(d.keys()))
+labels['Value_labels'] = vlabels
+n_values = labels['Values'].apply(lambda x: len(x) if isinstance(x, (set)) else np.nan)
+
+output_file = Path(spss_file).with_name(Path(spss_file).stem + "_LABELS" + ".xlsx")
+labels.to_excel(output_file)

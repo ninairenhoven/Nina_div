@@ -1,5 +1,92 @@
 import pikepdf
 from pathlib import Path
+import os
+from PyPDF2 import PdfReader, PdfWriter
+from datetime import datetime
+import zipfile
+
+
+
+
+
+def split_pdf_to_pages(input_pdf_path, output_folder, filnavn_dict=None):
+    """
+    Splitter en PDF i enkeltfiler per side.
+    filnavn_dict: dict med key=sidenummer (1-baserte), value=filnavn (med eller uten .pdf)
+    Hvis None, genereres dict med standardnavn inkludert .pdf.
+    """
+    output_folder.mkdir(parents=True, exist_ok=True)
+    input_pdf = PdfReader(input_pdf_path)
+    total_pages = len(input_pdf.pages)
+    #print(f"Starter splitting av '{input_pdf_path.name}' til '{output_folder}'...")
+    ts = datetime.now().isoformat(sep=' ', timespec='seconds')
+    print(f"[{ts}] Splitter opp fil: '{input_pdf_path.name}' -> '{output_folder}'. Totalt {total_pages} filer vil bli opprettet.")
+    #
+    # Lag standard dict hvis ingen filnavn_dict er gitt, nå med .pdf inkludert
+    if filnavn_dict is None:
+        filnavn_dict = {i: f"page_{i}.pdf" for i in range(1, total_pages + 1)}
+    #
+    pages = set(range(1, total_pages + 1))
+    given_keys = set(filnavn_dict.keys())
+    missing_keys = sorted(pages - given_keys)
+    for i in missing_keys:
+        filnavn_dict[i] = f"page_{i}.pdf"
+    #
+    # Forenklet kontroll: keys skal være nøyaktig 1..total_pages
+    if set(filnavn_dict.keys()) != set(range(1, total_pages + 1)):
+        raise ValueError(
+            f"filnavn_dict må ha keys 1 til {total_pages}. "
+            f"Fikk: {sorted(filnavn_dict.keys())}"
+        )
+    #
+    # Skriv ut alle sidene
+    for i in range(1, total_pages + 1):
+        filnavn = filnavn_dict[i]
+        # Sjekk om filnavnet allerede har .pdf-endelse
+        #if not filnavn.lower().endswith('.pdf'):
+        #    filnavn = f"{filnavn}.pdf"
+        #
+        out_path = output_folder / filnavn
+        writer = PdfWriter()
+        writer.add_page(input_pdf.pages[i - 1])
+        with open(out_path, "wb") as out_file:
+            writer.write(out_file)
+        if total_pages < 10:
+            print(f"  Lagret side {i} som '{out_path.name}'")
+        printfreq = 20 if total_pages < 200 else 100
+        if i % printfreq == 0:
+            ts = datetime.now().isoformat(sep=' ', timespec='seconds')
+            print(f"[{ts}] {i} sider lagret...")
+    ts = datetime.now().isoformat(sep=' ', timespec='seconds')
+    print(f"[{ts}] Ferdig! {total_pages} filer opprettet.\n")
+
+
+
+def add_extra_page_to_pdfs(folder: Path, extra_page_file: Path):
+    """
+    Legger til en ekstra side (fra extra_page_file) til alle PDF-er i folder
+    (bortsett fra extra_page_file selv).
+    """
+    print(f"Legger til ekstra side fra '{extra_page_file.name}' i alle PDF-er i '{folder}'...")
+    extra_reader = PdfReader(extra_page_file)
+    extra_page = extra_reader.pages[0]
+    pdf_files = list(folder.glob('*.pdf'))
+    total_files = len(pdf_files)
+    print(f"Antall filer: {total_files}")
+    for idx, pdf_file in enumerate(pdf_files, 1):
+        if pdf_file == extra_page_file:
+            print(f"  Hopper over '{pdf_file.name}' (ekstra side).")
+            continue
+        reader = PdfReader(pdf_file)
+        writer = PdfWriter()
+        writer.add_page(reader.pages[0])
+        writer.add_page(extra_page)
+        with open(pdf_file, "wb") as out_file:
+            writer.write(out_file)
+        print(f"  ({idx}/{total_files}) Lagt til ekstra side i '{pdf_file.name}'")
+    print("Ekstra side lagt til i alle aktuelle filer.\n")
+
+
 
 
 def shrink_pdf(inp, outp):
@@ -65,9 +152,7 @@ def shrink_pdf(inp, outp):
                 # Fallback 2: minimalistisk save
                 pdf.save(outp)
 
-import os
-from pathlib import Path
-import pikepdf
+
 
 def shrink_pdf(inp, outp):
     """
@@ -305,9 +390,42 @@ def compress_pdfs_in_folder(input_folder, output_folder, keep_meta=False):
 
 
 
+def zip_files_simple(base_path: Path, files, output_name: str) -> Path:
+    """
+    Lager en zip i base_path med navnet output_name, og legger inn oppgitte filer.
+    Antar at alle filer og base_path finnes. Skriver en enkel status etterpå.
+    """
+    output_zip = base_path / output_name
+    #
+    # Sørg for at files kan itereres flere ganger (hvis det er en generator/Series)
+    files_list = [Path(p) for p in files]
+    #
+    with zipfile.ZipFile(output_zip, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+        for rel_path in files_list:
+            rel_path = Path(rel_path)
+            abs_path = base_path / rel_path
+            zf.write(abs_path, arcname=rel_path.as_posix())
+    #
+    # Verifisering og utskrift
+    try:
+        size_bytes = output_zip.stat().st_size
+        size_mb = size_bytes / (1024 * 1024)
+        print(f"Zippet {len(files_list)} filer til: {output_zip}")
+        print(f"Zip-størrelse: {size_bytes} bytes ({size_mb:.2f} MB)")
+    except FileNotFoundError:
+        print(f"Feil: Klarte ikke å finne zip-filen etter skriving: {output_zip}")
+    #
+    return output_zip
 
 
+
+# ==============================================================================================
+# TESTSONE
+# ==============================================================================================
+
+import win32com.client as win32
 from docx2pdf import convert
+
 
 def docx_to_pdf(input_path: Path, output_path: Path | None = None) -> Path:
     input_path = Path(input_path).resolve()
@@ -361,4 +479,3 @@ def docx_to_pdf_file(input_path: Path, output_path: Path | None = None) -> Path:
     if not output_path.exists():
         raise FileNotFoundError("PDF ble ikke generert som forventet.")
     return output_path
-

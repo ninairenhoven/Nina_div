@@ -22,14 +22,15 @@ except ImportError:
     print("Warning: mammoth not installed, using basic conversion")
 
 # =============================================================================
-# INPUT FILES
+# INPUT
 # =============================================================================
 
 # Define paths for user and input files
 user_path = Path.home()
 path = user_path.joinpath(r'Documents\RVU_LOKAL\BRAKAR Sample')
-TEMPLATE_FILE = path.joinpath("Invitasjonsbrev_ORDA_Brakar.docx")
-LOOKUP_FILE = path.joinpath("Buskerud FK, Brakar, Opinion FREG uttrekk-krr_BRAKAR_Batch_0_23_PROCESSED_Nov11.csv")
+
+TEMPLATE_FILE = path.joinpath("Invitasjonsbrev_Brakar_Opinion Reisedag.docx")
+LOOKUP_FILE = path.joinpath("Buskerud FK, Brakar, Opinion FREG uttrekk-krr_BRAKAR_Batch_1_23_PROCESSED_Nov12.csv")
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 OUTPUT_FOLDER = path.joinpath(f"OUTPUT_{timestamp}")
@@ -43,17 +44,21 @@ PLACEHOLDERS = [
     "uniksurveylink"
 ]
 
+# Column with file name for individual pdf file
+FILENAME_COLUMN = 'filnavn'
+
 # =============================================================================
-# CONFIGURATION
+# HTML CONFIGURATION
 # =============================================================================
 
 # Default styles for the generated HTML
 DEFAULT_FONT_FAMILY = "Helvetica, Arial, sans-serif"
-DEFAULT_FONT_SIZE = "11pt"
-DEFAULT_LINE_HEIGHT = "1.5"
+DEFAULT_FONT_SIZE = "12pt"
+DEFAULT_LINE_HEIGHT = "1.3"
 LIST_LINE_HEIGHT = "1.2"
 HEADING_1_SIZE = "14pt"
 HEADING_2_SIZE = "12pt"
+LINK_FONT_SIZE = "11.5pt"
 
 # HTML template for the generated PDF
 from string import Template
@@ -98,6 +103,7 @@ HTML_TEMPLATE = Template("""
         a.survey-link {
             color: #0066cc;
             text-decoration: underline;
+            font-size: $LINK_FONT_SIZE;
         }
         a.email-link {
             color: #0066cc;
@@ -111,10 +117,72 @@ $HTML_BODY
 </html>
 """)
 
+
+# =============================================================================
+# LOAD HTML TEMPLATE
+# =============================================================================
+
+
+def load_html_template(template_path):
+    """Load and convert template to HTML"""
+    try:
+        if MAMMOTH_AVAILABLE:
+            with open(template_path, "rb") as docx_file:
+                result = convert_to_html(docx_file)
+                body = result.value
+        else:
+            doc = Document(template_path)
+            paragraphs = []
+            for para in doc.paragraphs:
+                text = para.text
+                if text.strip():
+                    paragraphs.append(f"<p>{text}</p>")
+            body = "\n".join(paragraphs)
+        
+        # Process spacing tags and emails
+        body = convert_emails_to_links(body)
+        body = process_spacing_tags(body)
+        
+        # Use Template.substitute() to insert HTML body
+        return HTML_TEMPLATE.substitute(
+            DEFAULT_FONT_FAMILY=DEFAULT_FONT_FAMILY,
+            DEFAULT_FONT_SIZE=DEFAULT_FONT_SIZE,
+            DEFAULT_LINE_HEIGHT=DEFAULT_LINE_HEIGHT,
+            LIST_LINE_HEIGHT=LIST_LINE_HEIGHT,
+            HEADING_1_SIZE=HEADING_1_SIZE,
+            HEADING_2_SIZE=HEADING_2_SIZE,
+            LINK_FONT_SIZE=LINK_FONT_SIZE,
+            HTML_BODY=body
+        )
+    
+    except Exception as e:
+        raise Exception(f"Failed to load template in worker: {e}")
+
+
+
+def convert_emails_to_links(html_content):
+    """Convert email addresses in HTML to clickable mailto: links"""
+    email_pattern = r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b'
+    
+    def replace_email(match):
+        email = match.group(1)
+        return f'<a href="mailto:{email}" class="email-link">{email}</a>'
+    
+    return re.sub(email_pattern, replace_email, html_content)
+
+
+def process_spacing_tags(html_content):
+    """Process spacing tags from Word document"""
+    tag_count = html_content.count('&lt;linjeskift&gt;')
+    if tag_count > 0:
+        html_content = html_content.replace('&lt;linjeskift&gt;', '<p>&nbsp;</p>')
+    return html_content
+
+
+
 # =============================================================================
 # READ LOOKUP FILE
 # =============================================================================
-
 
 def load_and_validate_data(file_path, required_columns, limit_rows=None):
     """
@@ -150,14 +218,14 @@ def load_and_validate_data(file_path, required_columns, limit_rows=None):
                 usecols=required_columns,
                 nrows=limit_rows,
                 engine='openpyxl',
-                dtype={'filename_tag': str}  # Preserve leading zeros
+                #dtype={'filename_tag': str}  # Preserve leading zeros
             )
         elif file_extension == '.csv':
             df = pd.read_csv(
                 file_path,
                 usecols=required_columns,
                 nrows=limit_rows,
-                dtype={'filename_tag': str}  # Preserve leading zeros
+                #dtype={'filename_tag': str}  # Preserve leading zeros
             )
         else:
             raise ValueError(f"Unsupported file type: {file_extension}")
@@ -168,11 +236,18 @@ def load_and_validate_data(file_path, required_columns, limit_rows=None):
     missing_columns = [col for col in required_columns if col not in df.columns]
     if missing_columns:
         raise ValueError(f"Missing required columns: {missing_columns}")
+    
+    # Check for missing values in required columns
+    for col in required_columns:
+        missing_values_count = df[col].isna().sum() + df[col].eq('').sum()
+        if missing_values_count > 0:
+            raise ValueError(f"Column '{col}' has {missing_values_count} missing values!")
 
     logging.info(f"Loaded {len(df)} rows from {file_path}")
     logging.info(f"Columns: {list(df.columns)}")
     
     return df
+
 
 
 
@@ -182,68 +257,14 @@ def load_and_validate_data(file_path, required_columns, limit_rows=None):
 _worker_template_cache = None
 
 
-def init_worker(template_path):
+def init_worker(html_template):
     """
     Initialize worker process with template (called once per worker).
     This saves memory usage by avoiding sending the template via pickle to each worker.
     """
     global _worker_template_cache
     if _worker_template_cache is None:
-        _worker_template_cache = load_template_for_worker(template_path)
-
-
-def load_template_for_worker(template_path):
-    """Load and convert template to HTML in worker process"""
-    try:
-        if MAMMOTH_AVAILABLE:
-            with open(template_path, "rb") as docx_file:
-                result = convert_to_html(docx_file)
-                body = result.value
-        else:
-            doc = Document(template_path)
-            paragraphs = []
-            for para in doc.paragraphs:
-                text = para.text
-                if text.strip():
-                    paragraphs.append(f"<p>{text}</p>")
-            body = "\n".join(paragraphs)
-        
-        # Process spacing tags and emails
-        body = convert_emails_to_links(body)
-        body = process_spacing_tags(body)
-        
-        # Use Template.substitute() to insert HTML body
-        return HTML_TEMPLATE.substitute(
-            DEFAULT_FONT_FAMILY=DEFAULT_FONT_FAMILY,
-            DEFAULT_FONT_SIZE=DEFAULT_FONT_SIZE,
-            DEFAULT_LINE_HEIGHT=DEFAULT_LINE_HEIGHT,
-            LIST_LINE_HEIGHT=LIST_LINE_HEIGHT,
-            HEADING_1_SIZE=HEADING_1_SIZE,
-            HEADING_2_SIZE=HEADING_2_SIZE,
-            HTML_BODY=body
-        )
-    
-    except Exception as e:
-        raise Exception(f"Failed to load template in worker: {e}")
-
-
-def convert_emails_to_links(html_content):
-    """Convert email addresses in HTML to clickable mailto: links"""
-    email_pattern = r'\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b'
-    
-    def replace_email(match):
-        email = match.group(1)
-        return f'<a href="mailto:{email}" class="email-link">{email}</a>'
-    
-    return re.sub(email_pattern, replace_email, html_content)
-
-
-def process_spacing_tags(html_content):
-    """Process spacing tags from Word document"""
-    tag_count = html_content.count('&lt;linjeskift&gt;')
-    if tag_count > 0:
-        html_content = html_content.replace('&lt;linjeskift&gt;', '<p>&nbsp;</p>')
-    return html_content
+        _worker_template_cache = html_template
 
 
 def process_single_file_worker(row_dict, output_folder, required_placeholders):
@@ -259,18 +280,18 @@ def process_single_file_worker(row_dict, output_folder, required_placeholders):
         
         # Replace placeholders
         for placeholder in required_placeholders:
-            value = str(row_dict.get(placeholder, ''))
+            value = str(row_dict[placeholder])#str(row_dict.get(placeholder, ''))
             
-            # Special handling for survey link
-            if placeholder.lower() == 'uniksurveylink':
+            # Hvis verdien starter med "http://" eller "https://", formater den som lenke
+            if value.startswith("http://") or value.startswith("https://"):
                 value = f'<a href="{value}" class="survey-link">{value}</a>'
             
             content = content.replace(f'[{placeholder}]', value)
         
         # Generate filename
-        filename_tag = str(row_dict['filename_tag'])
-        filename_tag_clean = filename_tag.replace('/', '_').replace('\\', '_').replace(':', '_')
-        filename = f"brakar_opinion_{filename_tag_clean}.pdf"
+        # filename_tag = str(row_dict['filename_tag'])
+        # filename_tag_clean = filename_tag.replace('/', '_').replace('\\', '_').replace(':', '_')
+        filename = row_dict[FILENAME_COLUMN] #f"brakar_opinion_{filename_tag_clean}.pdf"
         pdf_path = os.path.join(output_folder, filename)
         
         # Create PDF using xhtml2pdf
@@ -287,7 +308,7 @@ def process_single_file_worker(row_dict, output_folder, required_placeholders):
         return {'success': True, 'filename': filename}
     
     except Exception as e:
-        filename_tag = row_dict.get('filename_tag', 'unknown')
+        filename = row_dict.get(FILENAME_COLUMN, 'unknown')
         return {'success': False, 'error': str(e)}
 
 # =============================================================================
@@ -298,16 +319,18 @@ class HTMLPDFGenerator:
     """
     Fast HTML-based PDF generator with parallel processing using xhtml2pdf
     """
-    def __init__(self, template_path, lookup, output_folder, required_placeholders, batch_size=2000, num_workers=None):
+    def __init__(self, lookup, output_folder, required_placeholders, html_template=None, template_path=None, batch_size=2000, num_workers=None):
         """
         Initialize generator
 
         Parameters:
         -----------
-        template_path : str or Path
-            Path to Word template
-        df : pd.DataFrame
-            Preloaded and validated DataFrame
+        html_template : str, optional
+            Pre-generated HTML template as a string. If provided, this will be used.
+        template_path : str or Path, optional
+            Path to a Word template. Used only if html_template is not provided.
+        lookup : pd.DataFrame
+            Preloaded and validated DataFrame with data to merge into template
         output_folder : str or Path
             Output folder for PDFs
         required_placeholders : list
@@ -317,7 +340,16 @@ class HTMLPDFGenerator:
         num_workers : int
             Number of parallel workers (default: CPU count - 1)
         """
-        self.template_path = str(Path(template_path).resolve())
+        if not html_template and not template_path:
+            raise ValueError("Either 'html_template' or 'template_path' must be provided.")
+        
+        if html_template:
+            self.html_template = html_template
+        elif template_path:
+            self.html_template = load_html_template(template_path)  # Generate template from path
+
+
+        #self.template_path = str(Path(template_path).resolve())
         self.lookup = lookup  # DataFrame is now passed in directly
         self.output_folder = str(Path(output_folder).resolve())
         self.required_placeholders = required_placeholders
@@ -387,7 +419,7 @@ class HTMLPDFGenerator:
         with ProcessPoolExecutor(
             max_workers=self.num_workers,
             initializer=init_worker,
-            initargs=(self.template_path,)
+            initargs=(self.html_template,)
         ) as executor:
             # Submit all tasks
             futures = {}
@@ -395,7 +427,7 @@ class HTMLPDFGenerator:
                 # Send only necessary data (not the entire row)
                 row_dict = {
                     col: row[col]
-                    for col in self.required_placeholders + ['filename_tag']
+                    for col in self.required_placeholders + [FILENAME_COLUMN] #+ ['filename_tag']
                 }
 
                 future = executor.submit(
@@ -404,12 +436,12 @@ class HTMLPDFGenerator:
                     output_folder,
                     self.required_placeholders
                 )
-                futures[future] = row.get('filename_tag', idx)
+                futures[future] = row.get(FILENAME_COLUMN, idx) #row.get('filename_tag', idx)
 
             # Collect results with progress bar
             with tqdm(total=len(futures), desc=f"Batch {batch_num}") as pbar:
                 for future in as_completed(futures):
-                    filename_tag = futures[future]
+                    filename = futures[future]
                     try:
                         result = future.result()
                         if result['success']:
@@ -418,11 +450,11 @@ class HTMLPDFGenerator:
                         else:
                             batch_failed += 1
                             self.stats['failed'] += 1
-                            self.logger.error(f"Failed {filename_tag}: {result.get('error', 'Unknown')}")
+                            self.logger.error(f"Failed {filename}: {result.get('error', 'Unknown')}")
                     except Exception as e:
                         batch_failed += 1
                         self.stats['failed'] += 1
-                        self.logger.error(f"Failed {filename_tag}: {str(e)}")
+                        self.logger.error(f"Failed {filename}: {str(e)}")
                     finally:
                         pbar.update(1)  # Update progress bar
 
@@ -439,7 +471,7 @@ class HTMLPDFGenerator:
         self.logger.info(f"\n{'='*60}")
         self.logger.info(f"Starting PDF Generation (xhtml2pdf + worker caching)")
         self.logger.info(f"{'='*60}")
-        self.logger.info(f"Template: {self.template_path}")
+        #self.logger.info(f"Template: {self.template_path}")
         self.logger.info(f"Output: {self.output_folder}")
         self.logger.info(f"Batch size: {self.batch_size}")
         self.logger.info(f"Parallel workers: {self.num_workers}")
@@ -457,7 +489,7 @@ class HTMLPDFGenerator:
         self.stats['end_time'] = datetime.now()
         duration = (self.stats['end_time'] - self.stats['start_time']).total_seconds()
         self.logger.info(f"\n{'='*60}")
-        self.logger.info(f"GENERATION COMPLETE")
+        self.logger.info(f"✅ GENERATION COMPLETE")
         self.logger.info(f"{'='*60}")
         self.logger.info(f"Total files: {self.stats['total']}")
         self.logger.info(f"Successful: {self.stats['success']}")
@@ -474,6 +506,17 @@ class HTMLPDFGenerator:
 
 
 if __name__ == "__main__":
+
+    # Create output folder
+    Path(OUTPUT_FOLDER).mkdir(parents=True, exist_ok=True)
+
+    template = load_html_template(TEMPLATE_FILE)
+    html_output_path = OUTPUT_FOLDER.joinpath("generated_template.html")
+    
+    with open(html_output_path, "w", encoding="utf-8") as html_file:
+        html_file.write(template)
+
+    print(f"HTML-templatet er lagret til: {html_output_path}")
 
     # Prompt user for input
     user_input = input("Process entire lookup file? (Y or specify number of rows): ").strip().lower()
@@ -494,7 +537,7 @@ if __name__ == "__main__":
     try:
         lookup_df = load_and_validate_data(
             file_path=LOOKUP_FILE,
-            required_columns=PLACEHOLDERS + ['filename_tag'],
+            required_columns=PLACEHOLDERS + [FILENAME_COLUMN],
             limit_rows = limit_rows
         )
     except ValueError as e:
@@ -505,7 +548,7 @@ if __name__ == "__main__":
     print("\n" + "=" * 70)
 
     generator = HTMLPDFGenerator(
-        template_path=TEMPLATE_FILE,
+        html_template=template,
         lookup=lookup_df,
         output_folder=str(OUTPUT_FOLDER),
         required_placeholders=PLACEHOLDERS,
@@ -514,3 +557,7 @@ if __name__ == "__main__":
     )
     generator.generate()
 
+##############################3
+
+
+#lookup_df = load_and_validate_data(file_path=LOOKUP_FILE, required_columns=PLACEHOLDERS + [FILENAME_COLUMN], limit_rows = None) #['filename_tag'], 

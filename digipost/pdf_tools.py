@@ -4,7 +4,7 @@ import os
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
 import zipfile
-
+import pandas as pd
 
 
 
@@ -416,6 +416,9 @@ def zip_files_simple(base_path: Path, files, output_name: str) -> Path:
         print(f"Feil: Klarte ikke å finne zip-filen etter skriving: {output_zip}")
     #
     return output_zip
+
+
+
 
 
 

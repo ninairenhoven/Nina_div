@@ -28,22 +28,20 @@ print(spss_file)
 print('\nDataFrame df:\n')
 print(df)
 
-value_labels = meta.variable_value_labels
-col_labels = meta.column_names_to_labels 
+vlabels = meta.variable_value_labels
+clabels = meta.column_names_to_labels 
 
 print('\nvalue_labels: \n')
-print(pd.Series(value_labels))
+print(pd.Series(vlabels))
 
 print('\ncol_labels: \n')
-print(pd.Series(col_labels))
-
-
+print(pd.Series(clabels))
 
 ####################################
 
-kommune_labels = pd.Series(value_labels['BOSTED_KommuneNummer'])
-kommune_labels = 'K-'+kommune_labels.index.astype(int).astype(str).str.zfill(4) +' '+ kommune_labels
-kommune_labels.index = kommune_labels.index.astype(int)
+#kommune_labels = pd.Series(value_labels['BOSTED_KommuneNummer'])
+#kommune_labels = 'K-'+kommune_labels.index.astype(int).astype(str).str.zfill(4) +' '+ kommune_labels
+#kommune_labels.index = kommune_labels.index.astype(int)
 
 
 
@@ -51,15 +49,45 @@ kommune_labels.index = kommune_labels.index.astype(int)
 #========================================================================
 # Labels til excel
 #========================================================================
+"""
 
-labels = pd.Series(col_labels).to_frame(name='Variable label')
+clabels = pd.Series(col_labels)
 
 vlabels = pd.Series(value_labels)
-vlabels = vlabels.apply(lambda d: {int(k):v for k,v in d.items()})
+# Gjør om til heltall i key for value labels
+vlabels = vlabels.apply(lambda d: {(int(k) if isinstance(k, float) else k): v for k, v in d.items()})
 
-labels['Values'] =  vlabels.apply(lambda d: set(d.keys()))
-labels['Value_labels'] = vlabels
-n_values = labels['Values'].apply(lambda x: len(x) if isinstance(x, (set)) else np.nan)
+values =  vlabels.apply(lambda d: list(d.keys()))
+n_values = values.apply(lambda x: len(x) if isinstance(x, (list)) else np.nan)
+values[n_values>20] = ">20 verdier"
 
-output_file = Path(spss_file).with_name(Path(spss_file).stem + "_LABELS" + ".xlsx")
-labels.to_excel(output_file)
+labels = pd.concat([clabels, vlabels, values], axis=1)
+
+df_info = pd.DataFrame.from_dict({
+    'Variable label':clabels, 
+    'Values':values,
+    'Value labels':vlabels,
+    })
+
+
+# Samfunnsmonitoren: Sjekk når hvert spørsmål har data
+s = pd.Series()
+
+for var in df.columns:
+    mask = ~df[var].isna()
+    antall_maalinger = df.loc[mask, 'samfmon_uke'].astype(int).nunique()
+    maalinger = df.loc[mask, 'samfmon_uke'].unique()
+    if (antall_maalinger<10):
+        temp = [vlabels['samfmon_uke'][x] for x in maalinger]
+        s[var] = ', '.join(temp)
+    else:
+        s[var] = f"({antall_maalinger} maalinger)"
+
+s = s.apply(lambda x: x if len(x)<10 else x)
+
+df_info['Målinger'] = s
+
+"""
+
+output_file = Path(spss_file).parent.joinpath(Path(spss_file).stem +'_info.xlsx')
+#df_info.to_excel(output_file)

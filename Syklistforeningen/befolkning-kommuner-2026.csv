@@ -1,0 +1,359 @@
+﻿Kommunenummer,Kommune,Befolkning
+3101,Halden,32082
+3103,Moss,53207
+3105,Sarpsborg,60614
+3107,Fredrikstad,86243
+3110,Hvaler,4714
+3112,Råde,7892
+3114,Våler (Østfold),6229
+3116,Skiptvet,3940
+3118,Indre Østfold,47943
+3120,Rakkestad,8583
+3122,Marker,3647
+3124,Aremark,1354
+3201,Bærum,133228
+3203,Asker,101509
+3205,Lillestrøm,96771
+3207,Nordre Follo,65381
+3209,Ullensaker,45982
+3212,Nesodden,21005
+3214,Frogn,16429
+3216,Vestby,20167
+3218,Ås,22725
+3220,Enebakk,11697
+3222,Lørenskog,51511
+3224,Rælingen,20904
+3226,Aurskog-Høland,18458
+3228,Nes,24948
+3230,Gjerdrum,7478
+3232,Nittedal,26032
+3234,Lunner,9463
+3236,Jevnaker,7040
+3238,Nannestad,16662
+3240,Eidsvoll,28739
+3242,Hurdal,3078
+301,Oslo - Oslove,728714
+3301,Drammen,106013
+3303,Kongsberg,29169
+3305,Ringerike,31942
+3310,Hole,7205
+3312,Lier,28797
+3314,Øvre Eiker,20965
+3316,Modum,14776
+3318,Krødsherad,2276
+3320,Flå,1122
+3322,Nesbyen,3234
+3324,Gol,4902
+3326,Hemsedal,2707
+3328,Ål,5106
+3330,Hol,4552
+3332,Sigdal,3514
+3334,Flesberg,2790
+3336,Rollag,1452
+3338,Nore og Uvdal,2459
+3401,Kongsvinger,18191
+3403,Hamar,33817
+3405,Lillehammer,29669
+3407,Gjøvik,31350
+3411,Ringsaker,36199
+3412,Løten,7951
+3413,Stange,21839
+3414,Nord-Odal,4978
+3415,Sør-Odal,8165
+3416,Eidskog,6103
+3417,Grue,4463
+3418,Åsnes,7216
+3419,Våler (Innlandet),3614
+3420,Elverum,21937
+3421,Trysil,6474
+3422,Åmot,4191
+3423,Stor-Elvdal,2239
+3424,Rendalen,1836
+3425,Engerdal,1287
+3426,Tolga,1609
+3427,Tynset,5762
+3428,Alvdal,2492
+3429,Folldal,1525
+3430,Os,1871
+3431,Dovre,2523
+3432,Lesja,1966
+3433,Skjåk,2185
+3434,Lom,2239
+3435,Vågå,3553
+3436,Nord-Fron,5493
+3437,Sel,5469
+3438,Sør-Fron,3108
+3439,Ringebu,4497
+3440,Øyer,5130
+3441,Gausdal,6147
+3442,Østre Toten,14925
+3443,Vestre Toten,13612
+3446,Gran,13689
+3447,Søndre Land,5603
+3448,Nordre Land,6510
+3449,Sør-Aurdal,2841
+3450,Etnedal,1593
+3451,Nord-Aurdal,6424
+3452,Vestre Slidre,2190
+3453,Øystre Slidre,3347
+3454,Vang,1666
+3901,Horten,28173
+3903,Holmestrand,27086
+3905,Tønsberg,60246
+3907,Sandefjord,67062
+3909,Larvik,49022
+3911,Færder,27743
+4001,Porsgrunn,37435
+4003,Skien,56906
+4005,Notodden,13389
+4010,Siljan,2377
+4012,Bamble,14267
+4014,Kragerø,10378
+4016,Drangedal,4056
+4018,Nome,6529
+4020,Midt-Telemark,11157
+4022,Seljord,2959
+4024,Hjartdal,1638
+4026,Tinn,5515
+4028,Kviteseid,2463
+4030,Nissedal,1509
+4032,Fyresdal,1274
+4034,Tokke,2242
+4036,Vinje,3829
+4201,Risør,6683
+4202,Grimstad,25569
+4203,Arendal,46603
+4204,Kristiansand,119287
+4205,Lindesnes,23702
+4206,Farsund,9949
+4207,Flekkefjord,9373
+4211,Gjerstad,2502
+4212,Vegårshei,2253
+4213,Tvedestrand,6430
+4214,Froland,6299
+4215,Lillesand,11822
+4216,Birkenes,5447
+4217,Åmli,1805
+4218,Iveland,1386
+4219,Evje og Hornnes,3842
+4220,Bygland,1167
+4221,Valle,1209
+4222,Bykle,1057
+4223,Vennesla,15772
+4224,Åseral,904
+4225,Lyngdal,10922
+4226,Hægebostad,1794
+4227,Kvinesdal,6242
+4228,Sirdal,1911
+1101,Eigersund,15546
+1103,Stavanger,151669
+1106,Haugesund,38663
+1108,Sandnes,85785
+1111,Sokndal,3356
+1112,Lund,3229
+1114,Bjerkreim,2894
+1119,Hå,20087
+1120,Klepp,21444
+1121,Time,20461
+1122,Gjesdal,12715
+1124,Sola,29541
+1127,Randaberg,11841
+1130,Strand,13959
+1133,Hjelmeland,2612
+1134,Suldal,3891
+1135,Sauda,4603
+1144,Kvitsøy,579
+1145,Bokn,907
+1146,Tysvær,11750
+1149,Karmøy,43990
+1151,Utsira,219
+1160,Vindafjord,9181
+4601,Bergen,294860
+4602,Kinn,17356
+4611,Etne,4115
+4612,Sveio,5766
+4613,Bømlo,12531
+4614,Stord,19276
+4615,Fitjar,3237
+4616,Tysnes,3053
+4617,Kvinnherad,13236
+4618,Ullensvang,10929
+4619,Eidfjord,985
+4620,Ulvik,1114
+4621,Voss,16438
+4622,Kvam,8490
+4623,Samnanger,2489
+4624,Bjørnafjorden,26753
+4625,Austevoll,5515
+4626,Øygarden,40641
+4627,Askøy,30600
+4628,Vaksdal,3899
+4629,Modalen,397
+4630,Osterøy,8231
+4631,Alver,30285
+4632,Austrheim,2947
+4633,Fedje,529
+4634,Masfjorden,1672
+4635,Gulen,2301
+4636,Solund,742
+4637,Hyllestad,1275
+4638,Høyanger,3883
+4639,Vik,2532
+4640,Sogndal,12552
+4641,Aurland,1866
+4642,Lærdal,2223
+4643,Årdal,5178
+4644,Luster,5478
+4645,Askvoll,2924
+4646,Fjaler,2948
+4647,Sunnfjord,22804
+4648,Bremanger,3381
+4649,Stad,9616
+4650,Gloppen,5976
+4651,Stryn,7319
+1505,Kristiansund,24479
+1506,Molde,33291
+1508,Ålesund,59663
+1511,Vanylven,3029
+1514,Sande,2437
+1515,Herøy (Møre og Romsdal),9003
+1516,Ulstein,8958
+1517,Hareid,5411
+1520,Ørsta,11068
+1525,Stranda,4333
+1528,Sykkylven,7626
+1531,Sula,9798
+1532,Giske,8828
+1535,Vestnes,7315
+1539,Rauma,7195
+1547,Aukra,3780
+1554,Averøy,6007
+1557,Gjemnes,2740
+1560,Tingvoll,3066
+1563,Sunndal,7094
+1566,Surnadal,5982
+1573,Smøla,2141
+1576,Aure,3371
+1577,Volda,11009
+1578,Fjord,2547
+1579,Hustadvika,13538
+1580,Haram,9460
+5001,Trondheim - Tråante,218460
+5006,Steinkjer - Stïentje,24007
+5007,Namsos - Nåavmesjenjaelmie,15112
+5014,Frøya,5794
+5020,Osen,911
+5021,Oppdal,7421
+5022,Rennebu,2514
+5025,Røros - Rosse,5638
+5026,Holtålen,2037
+5027,Midtre Gauldal,6088
+5028,Melhus,17828
+5029,Skaun,8574
+5031,Malvik,14961
+5032,Selbu,4258
+5033,Tydal,773
+5034,Meråker,2460
+5035,Stjørdal,25108
+5036,Frosta,2667
+5037,Levanger - Levangke,20807
+5038,Verdal,15435
+5041,Snåase - Snåsa,2141
+5042,Lierne,1302
+5043,Raarvihke - Røyrvik,439
+5044,Namsskogan,803
+5045,Grong,2292
+5046,Høylandet,1230
+5047,Overhalla,3944
+5049,Flatanger,1110
+5052,Leka,596
+5053,Inderøy,7066
+5054,Indre Fosen,10006
+5055,Heim,6075
+5056,Hitra,5568
+5057,Ørland,10706
+5058,Åfjord,4340
+5059,Orkland,18840
+5060,Nærøysund,9920
+5061,Rindal,1935
+1804,Bodø,53638
+1806,Narvik,21647
+1811,Bindal,1361
+1812,Sømna,2006
+1813,Brønnøy,7841
+1815,Vega,1202
+1816,Vevelstad,477
+1818,Herøy (Nordland),1874
+1820,Alstahaug,7489
+1822,Leirfjord,2392
+1824,Vefsn,13481
+1825,Grane,1415
+1826,Aarborte - Hattfjelldal,1255
+1827,Dønna,1445
+1828,Nesna,1796
+1832,Hemnes,4486
+1833,Rana - Raane,25844
+1834,Lurøy,1953
+1835,Træna,443
+1836,Rødøy,1140
+1837,Meløy,6074
+1838,Gildeskål,2024
+1839,Beiarn,1032
+1840,Saltdal,4865
+1841,Fauske - Fuossko,9707
+1845,Sørfold - Fuolldá,1819
+1848,Steigen,2679
+1851,Lødingen,1964
+1853,Evenes - Evenássi,1397
+1856,Røst,471
+1857,Værøy,656
+1859,Flakstad,1235
+1860,Vestvågøy,11606
+1865,Vågan,9905
+1866,Hadsel,8374
+1867,Bø,2609
+1868,Øksnes,4613
+1870,Sortland - Suortá,10748
+1871,Andøy,4525
+1874,Moskenes,976
+1875,Hábmer - Hamarøy,2808
+5501,Tromsø,79943
+5503,Harstad - Hárstták,25204
+5510,Kvæfjord,2901
+5512,Dielddanuorri - Tjeldsund,4144
+5514,Ibestad,1287
+5516,Gratangen - Rivtták,1062
+5518,Loabák - Lavangen,1002
+5520,Bardu,4004
+5522,Salangen,2132
+5524,Målselv,6819
+5526,Sørreisa,3528
+5528,Dyrøy,1077
+5530,Senja,14946
+5532,Balsfjord,5625
+5534,Karlsøy,2235
+5536,Lyngen - Ivgu - Yykeä,2732
+5538,Storfjord - Omasvuotna - Omasvuono,1848
+5540,Gáivuotna - Kåfjord - Kaivuono,1939
+5542,Skjervøy,2802
+5544,Nordreisa - Ráisa - Raisi,4863
+5546,Kvænangen,1125
+5601,Alta,22074
+5603,Hammerfest - Hámmerfeasta,11391
+5605,Sør-Varanger,9947
+5607,Vadsø,5808
+5610,Kárásjohka - Karasjok,2524
+5612,Guovdageaidnu - Kautokeino,2886
+5614,Loppa,846
+5616,Hasvik,987
+5618,Måsøy,1089
+5620,Nordkapp,2945
+5622,Porsanger - Porsángu - Porsanki,3906
+5624,Lebesby,1249
+5626,Gamvik,1019
+5628,Deatnu - Tana,2806
+5630,Berlevåg,864
+5632,Båtsfjord,2104
+5634,Vardø,1969
+5636,Unjárga - Nesseby,874
+9999,Uoppgitt kommune,0

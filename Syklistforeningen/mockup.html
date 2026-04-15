@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Sykkelundersøkelsen – Oversikt</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; color: #111; }
+
+    /* Header */
+    header {
+      background: #fff;
+      border-bottom: 3px solid #E8192C;
+      padding: 0 32px;
+    }
+    .header-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+    }
+    .header-logos { display: flex; align-items: center; gap: 32px; }
+    .header-logos img { height: 40px; width: auto; }
+    .header-logos .divider { width: 1px; height: 32px; background: #ddd; }
+    .header-title { text-align: right; }
+    .header-title h1 { font-size: 1.1rem; font-weight: 800; color: #111; letter-spacing: -0.02em; }
+    .header-title p { font-size: 0.8rem; color: #777; margin-top: 2px; }
+
+    .container { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+    /* Filters */
+    .filters {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: white;
+      border-radius: 4px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      align-items: flex-end;
+      border-top: 3px solid #E8192C;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+    .filter-group label { font-size: 0.72rem; font-weight: 700; color: #555; text-transform: uppercase; letter-spacing: .06em; }
+    .filter-group select {
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      font-size: 0.9rem;
+      background: white;
+      color: #111;
+    }
+    .filter-group select:focus { outline: none; border-color: #E8192C; }
+    .filter-reset {
+      padding: 8px 18px;
+      background: #E8192C;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: white;
+      align-self: flex-end;
+      letter-spacing: .02em;
+    }
+    .filter-reset:hover { background: #c41424; }
+
+    /* Summary cards */
+    .summary-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: white;
+      border-radius: 4px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      border-left: 4px solid #E8192C;
+    }
+    .card .label { font-size: 0.72rem; font-weight: 700; color: #777; text-transform: uppercase; letter-spacing: .06em; }
+    .card .value { font-size: 1.9rem; font-weight: 800; margin-top: 4px; color: #111; }
+    .card .sub { font-size: 0.78rem; color: #999; margin-top: 2px; }
+
+    /* Table */
+    .table-wrap {
+      background: white;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      overflow: hidden;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 2px solid #111;
+    }
+    .table-header h2 { font-size: 1rem; font-weight: 800; letter-spacing: -0.01em; }
+    .row-count { font-size: 0.8rem; color: #888; }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 10px 16px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      text-align: left;
+      background: #f5f5f5;
+      border-bottom: 1px solid #e0e0e0;
+      cursor: pointer;
+      user-select: none;
+    }
+    thead th:hover { background: #ececec; color: #E8192C; }
+    thead th.num { text-align: right; }
+    tbody tr { border-bottom: 1px solid #f0f0f0; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #fff5f5; }
+    td { padding: 10px 16px; font-size: 0.875rem; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Progress bar */
+    .progress-cell { min-width: 160px; }
+    .progress-wrap { display: flex; align-items: center; gap: 10px; }
+    .progress-bar-bg {
+      flex: 1;
+      height: 7px;
+      background: #eee;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width .3s;
+    }
+    .fill-red    { background: #E8192C; }
+    .fill-yellow { background: #f5a623; }
+    .fill-green  { background: #2e9e5b; }
+    .pct-label { font-size: 0.78rem; font-variant-numeric: tabular-nums; width: 36px; text-align: right; color: #555; font-weight: 600; }
+
+    /* Category badge */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      background: #f0f0f0;
+      color: #444;
+    }
+
+    .no-results { padding: 40px; text-align: center; color: #aaa; font-size: 0.9rem; }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 0.78rem;
+      color: #aaa;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-logos">
+      <img src="logo/SLF_logo_farge.png" alt="Syklistforeningen">
+      <div class="divider"></div>
+      <img src="logo/Opinion_Logo_Horizontal.png" alt="Opinion">
+    </div>
+    <div class="header-title">
+      <h1>Sykkelundersøkelsen 2026</h1>
+      <p>Innsamlingsstatus per kommune</p>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="filters">
+    <div class="filter-group">
+      <label>Fylke</label>
+      <select id="filter-fylke">
+        <option value="">Alle fylker</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Kommunestørrelse</label>
+      <select id="filter-kategori">
+        <option value="">Alle størrelser</option>
+        <option value="1">Under 20 000</option>
+        <option value="2">20 000–49 999</option>
+        <option value="3">50 000–99 999</option>
+        <option value="4">100 000–199 999</option>
+        <option value="5">Over 200 000</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Kommune</label>
+      <select id="filter-kommune">
+        <option value="">Alle kommuner</option>
+      </select>
+    </div>
+    <button class="filter-reset" onclick="resetFilters()">Nullstill</button>
+  </div>
+
+  <div class="summary-cards">
+    <div class="card">
+      <div class="label">Kommuner vist</div>
+      <div class="value" id="card-kommuner">–</div>
+      <div class="sub">av totalt 356</div>
+    </div>
+    <div class="card">
+      <div class="label">Totalt respondenter</div>
+      <div class="value" id="card-respondenter">–</div>
+      <div class="sub" id="card-respondenter-sub">–</div>
+    </div>
+    <div class="card">
+      <div class="label">Mål nådd</div>
+      <div class="value" id="card-maal">–</div>
+      <div class="sub">kommuner ≥ 100 %</div>
+    </div>
+    <div class="card">
+      <div class="label">Snitt fremgang</div>
+      <div class="value" id="card-snitt">–</div>
+      <div class="sub">av samlet mål</div>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <h2>Kommuner</h2>
+      <span class="row-count" id="row-count"></span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('nr')">Nr ↕</th>
+          <th onclick="sortBy('navn')">Kommune ↕</th>
+          <th onclick="sortBy('fylke')">Fylke ↕</th>
+          <th onclick="sortBy('kat')">Størrelse ↕</th>
+          <th class="num" onclick="sortBy('antall')">Antall ↕</th>
+          <th class="num" onclick="sortBy('maal')">Mål ↕</th>
+          <th class="progress-cell">Fremgang</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-results" id="no-results" style="display:none">Ingen kommuner matcher filtrene.</div>
+  </div>
+
+</div>
+
+<footer>Syklistforeningen &amp; Opinion – data oppdateres ved ny eksport</footer>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────────────────
+// Paste your Dropbox shared link and change dl=0 to dl=1
+const CSV_URL = "https://dl.dropboxusercontent.com/scl/fi/859lo09n6r4nbw1tmr9p6/antall_svar_kommuner_dummy.csv?rlkey=v4pb4uhx02o2cxratcx4nf8ae&st=r27xc18x";
+
+// Goals per Kommunestørrelse category (1–5)
+const GOALS = { 1: 15, 2: 30, 3: 50, 4: 80, 5: 150 };
+
+// ── Constants ──────────────────────────────────────────────────────────────
+const KAT_LABELS = {
+  1: "Under 20 000",
+  2: "20 000–49 999",
+  3: "50 000–99 999",
+  4: "100 000–199 999",
+  5: "Over 200 000"
+};
+
+// CSV columns: Kommunenummer, Kommune, Fylke, Befolkning, Kommunestørrelse, Target, Antall
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i]);
+    return {
+      nr:               +obj.Kommunenummer,
+      navn:              obj.Kommune,
+      fylke:             obj.Fylke,
+      befolkning:       +obj.Befolkning,
+      kommunestørrelse:  obj.Kommunestørrelse,
+      target:           +obj.Target,
+      antall:           +obj.Antall,
+    };
+  }).filter(r => r.nr && r.navn);
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let data = [], sortKey = 'navn', sortAsc = true;
+
+function sortBy(key) {
+  if (sortKey === key) sortAsc = !sortAsc;
+  else { sortKey = key; sortAsc = true; }
+  render();
+}
+
+function populateFylkeFilter() {
+  const sel = document.getElementById('filter-fylke');
+  const current = sel.value;
+  const fylker = [...new Set(data.map(r => r.fylke))].sort((a, b) => a.localeCompare(b, 'nb'));
+  sel.innerHTML = '<option value="">Alle fylker</option>';
+  fylker.forEach(f => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = f;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function populateKommuneFilter() {
+  const fylke = document.getElementById('filter-fylke').value;
+  const kat   = document.getElementById('filter-kategori').value;
+  const sel   = document.getElementById('filter-kommune');
+  const current = sel.value;
+
+  const kommuner = data
+    .filter(r => (!fylke || r.fylke === fylke) && (!kat || r.kommunestørrelse === KAT_LABELS[+kat]))
+    .map(r => ({ nr: r.nr, navn: r.navn }))
+    .sort((a, b) => a.navn.localeCompare(b.navn, 'nb'));
+
+  sel.innerHTML = '<option value="">Alle kommuner</option>';
+  kommuner.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k.nr;
+    opt.textContent = k.navn;
+    sel.appendChild(opt);
+  });
+  sel.value = kommuner.some(k => k.nr === +current) ? current : '';
+}
+
+function getFiltered() {
+  const fylke    = document.getElementById('filter-fylke').value;
+  const kat      = document.getElementById('filter-kategori').value;
+  const kommune  = document.getElementById('filter-kommune').value;
+  return data.filter(r => {
+    if (fylke   && r.fylke !== fylke)                        return false;
+    if (kat     && r.kommunestørrelse !== KAT_LABELS[+kat])  return false;
+    if (kommune && r.nr !== +kommune)                        return false;
+    return true;
+  });
+}
+
+function render() {
+  const rows = getFiltered().slice().sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') av = av.toLowerCase(), bv = bv.toLowerCase();
+    return sortAsc ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1);
+  });
+
+  const totalAntall  = rows.reduce((s, r) => s + r.antall, 0);
+  const totalTarget  = rows.reduce((s, r) => s + r.target, 0);
+  const maalNadd     = rows.filter(r => r.antall >= r.target).length;
+  const snitt        = totalTarget ? Math.round(totalAntall / totalTarget * 100) : 0;
+
+  document.getElementById('card-kommuner').textContent         = rows.length;
+  document.getElementById('card-respondenter').textContent     = totalAntall.toLocaleString('nb');
+  document.getElementById('card-respondenter-sub').textContent = `mål ${totalTarget.toLocaleString('nb')}`;
+  document.getElementById('card-maal').textContent             = maalNadd;
+  document.getElementById('card-snitt').textContent            = snitt + ' %';
+  document.getElementById('row-count').textContent             = rows.length + ' kommuner';
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const pct     = Math.min(Math.round(r.antall / r.target * 100), 100);
+    const fillCls = pct >= 100 ? 'fill-green' : pct >= 60 ? 'fill-yellow' : 'fill-red';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${r.nr}</td>
+      <td>${r.navn}</td>
+      <td>${r.fylke}</td>
+      <td><span class="badge">${r.kommunestørrelse}</span></td>
+      <td class="num">${r.antall}</td>
+      <td class="num">${r.target}</td>
+      <td class="progress-cell">
+        <div class="progress-wrap">
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill ${fillCls}" style="width:${pct}%"></div>
+          </div>
+          <span class="pct-label">${pct}%</span>
+        </div>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('no-results').style.display = rows.length ? 'none' : 'block';
+}
+
+function resetFilters() {
+  document.getElementById('filter-fylke').value    = '';
+  document.getElementById('filter-kategori').value = '';
+  document.getElementById('filter-kommune').value  = '';
+  populateKommuneFilter();
+  render();
+}
+
+function showError(msg) {
+  document.getElementById('tbody').innerHTML =
+    `<tr><td colspan="7" style="padding:40px;text-align:center;color:#c0392b">${msg}</td></tr>`;
+}
+
+// ── Load ───────────────────────────────────────────────────────────────────
+async function loadData() {
+  if (!CSV_URL) {
+    showError('Sett inn Dropbox-lenke i CSV_URL øverst i scriptet.');
+    return;
+  }
+  document.getElementById('tbody').innerHTML =
+    '<tr><td colspan="7" style="padding:40px;text-align:center;color:#888">Laster data…</td></tr>';
+  try {
+    const res = await fetch(CSV_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    data = parseCSV(text);
+    populateFylkeFilter();
+    populateKommuneFilter();
+    render();
+  } catch (e) {
+    showError(`Kunne ikke laste data: ${e.message}`);
+  }
+}
+
+document.getElementById('filter-fylke').addEventListener('change', () => { populateKommuneFilter(); render(); });
+document.getElementById('filter-kategori').addEventListener('change', () => { populateKommuneFilter(); render(); });
+document.getElementById('filter-kommune').addEventListener('change', render);
+
+loadData();
+</script>
+</body>
+</html>

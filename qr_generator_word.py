@@ -76,7 +76,7 @@ def write_qr_group(doc, title, urls, subtitle='', spacing=12):
         r = h2.add_run(str(subtitle))
         r.font.size = Pt(12)
     r.add_break()
-
+    #
     # Innhold: URL-linje + QR på ny linje
     for idx, url in enumerate(urls):
         p = doc.add_paragraph()
@@ -104,19 +104,19 @@ def export_qr_one_file(df, out_folder, group="Tiltak", main_title="", page_break
     out_folder = Path(out_folder)
     out_folder.mkdir(parents=True, exist_ok=True)
     out_path = out_folder / f"{safe_name(main_title)}.docx"
-
+    #
     fail_fast_if_not_writable(out_path)  # feiler tidlig hvis ikke mulig
-
+    #
     # Stabil rekkefølge
     df_sorted = df.sort_values([group, "URL"])
     doc = Document()
     set_document_margins(doc)
-
+    #
     if main_title:
         h0 = doc.add_heading(level=0)
         rh0 = h0.add_run(str(main_title))
         rh0.font.size = Pt(22)
-
+    #
     for grp_value, grp_df in df_sorted.groupby(group, sort=False):
         print(f"{grp_value:<30} ({grp_df.index.size})")
         urls = grp_df["URL"].tolist()
@@ -127,7 +127,7 @@ def export_qr_one_file(df, out_folder, group="Tiltak", main_title="", page_break
         else:
             p = doc.add_paragraph()
             p.paragraph_format.space_after = Pt(spacing)
-
+    #
     doc.save(out_path)
     print('Lagret til '+str(out_path))
     return out_path
@@ -173,20 +173,20 @@ def export_qr_per_group(df, out_folder, common_title="", group="Tiltak", spacing
 def read_links_excel(file):
     df = pd.read_excel(file, dtype=str)
     df = df.loc[:, ~df.columns.str.startswith("Unnamed")]
-
+    #
     df["Tiltak"] = df["Tiltak"].str.strip()
     df = df[df["Lenke"].notna() & (df["Lenke"] != "")]
     df = df.rename(columns={'Lenke':'URL'})
-
+    #
     print('\nLeser fil: '+str(file))
     print(df)
-
+    #
     df['valid'] = df['URL'].apply(is_valid_url_syntax)
-
+    #
     firstpart = df['URL'].str.rsplit('/', n=1).str[0]
     print('\nURL frem til siste slash:')
     print(firstpart.value_counts())
-
+    #
     if  (~df['valid'].all()):
         print('ADVARSEL: invalid url')
         print(df.loc[~df['valid']])

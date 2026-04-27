@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fjoven startliste</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --orange:      #F26649;
+      --teal:        #71C3B4;
+      --teal-dark:   #45A290;
+      --dark:        #302026;
+      --gray:        #525350;
+      --neutral-800: #211f54;
+      --neutral-600: #6e7191;
+      --neutral-300: #eff0f6;
+      --neutral-200: #f7f7fc;
+      --shadow:        0 4px 16px #14142b1a;
+      --shadow-header: 0 2px 5px #0003;
+
+      /* Fjoven + Fjogstad card (green) */
+      --green-light: #DDF2EE;
+      --green-dark:  #2E6C60;
+      --green-hover: #C6E7E1;
+
+      /* Oppsal råtasser card (blue) */
+      --blue-light:      #D4E2EC;
+      --blue-button:     #5B82A0;
+      --blue-header:     #4d7190;
+      --blue-text:       #3a5568;
+      --oppsal-row-border: #B8C9D6;
+      --oppsal-row-hover:  #C4D4E0;
+
+      /* Table header text */
+      --th-text: rgba(255,255,255,0.75);
+
+      /* Nullstill button */
+      --reset-bg:     #FCE0DB;
+      --reset-border: #f5b8b0;
+
+      /* Error message */
+      --error-bg:     #fdecea;
+      --error-border: #f15f5b;
+      --error-text:   #b91c1c;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', system-ui, sans-serif; background: var(--neutral-200); color: var(--dark); }
+
+    /* ── Header ──────────────────────────────────────────────────────────── */
+    header {
+      background: var(--neutral-200); box-shadow: var(--shadow-header);
+      padding: 0 20px; position: sticky; top: 0; z-index: 100;
+    }
+    .header-inner {
+      max-width: 1000px; margin: 0 auto;
+      display: flex; align-items: stretch; justify-content: space-evenly;
+    }
+    .header-tabs { display: flex; align-items: stretch; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Hero ────────────────────────────────────────────────────────────── */
+    .hero { background: var(--dark); padding: 14px 32px; }
+    .hero-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
+    .hero p  { font-size: 1.2rem; font-weight: 800; color: white; letter-spacing: -.02em; display: flex; align-items: baseline; justify-content: center; gap: 10px; }
+
+    #eventor-link-row a { color: var(--teal); text-decoration: none; font-weight: 600; opacity: 0.85; font-size: 0.75rem; }
+    #eventor-link-row a:hover { opacity: 1; text-decoration: underline; }
+    #liveResLink { font-size: 0.82rem; }
+    #liveResLink a { color: var(--teal-dark); font-weight: 600; text-decoration: none; }
+    #liveResLink a:hover { text-decoration: underline; }
+
+    .container { max-width: 1000px; margin: 0 auto; padding: 24px 20px 40px; }
+
+    /* Hero navigation */
+    .hero-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
+    .hero-date { font-size: 1rem; font-weight: 800; color: var(--teal); letter-spacing: -.01em; flex-shrink: 0; }
+
+    #eventor-link-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px; }
+    .btn-reload-events {
+      flex: none; padding: 5px 10px; border-radius: 20px; border: 1px solid #e8d97a;
+      background: #fdf7c3; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      color: #a08c20; cursor: pointer; transition: all .15s; line-height: 1.4;
+    }
+    .btn-reload-events:hover:not(:disabled) { border-color: #c9ab10; color: #7a6a10; }
+    .btn-reload-events:disabled { opacity: 0.35; cursor: default; }
+
+    /* Event picker */
+    .hero-event-picker { position: relative; display: inline-block; }
+    .btn-velg-lop {
+      background: white; border: 1px solid var(--neutral-300);
+      color: var(--neutral-600); font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: all .15s;
+    }
+    .btn-velg-lop:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-dark); }
+    .btn-velg-lop:disabled { opacity: 0.35; cursor: default; }
+    .velg-lop-panel {
+      display: none; position: fixed; top: calc(var(--header-h, 52px) + 6px); left: 50%; transform: translateX(-50%);
+      background: white; border-radius: 12px; box-shadow: var(--shadow);
+      min-width: 312px; max-height: 320px; overflow-y: auto; z-index: 200; padding: 4px 0;
+    }
+    .velg-lop-panel.open { display: block; }
+    .velg-lop-item {
+      padding: 10px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+      color: var(--dark); display: flex; align-items: center; gap: 10px;
+    }
+    .velg-lop-item:hover { background: var(--neutral-200); }
+    .velg-lop-item.active { color: var(--teal-dark); }
+    .velg-lop-item .ev-date {
+      font-size: 0.75rem; font-weight: 700; color: white; background: var(--neutral-600);
+      border-radius: 6px; padding: 2px 6px; flex-shrink: 0; font-variant-numeric: tabular-nums;
+    }
+    .velg-lop-item.active .ev-date { background: var(--teal-dark); }
+    @media (max-width: 520px) {
+      .table-filters { padding: 10px 12px; gap: 8px; }
+      .tf-select, .multiselect-btn { width: 140px; }
+    }
+    select {
+      padding: 10px 14px;
+      border: 1px solid var(--neutral-300); border-radius: 10px;
+      font-family: inherit; font-size: 0.9rem; font-weight: 600;
+      color: var(--dark); background: white; cursor: pointer;
+    }
+    select:disabled { color: var(--neutral-600); cursor: default; }
+    select:focus    { outline: none; border-color: var(--teal); }
+
+    /* ── Messages ────────────────────────────────────────────────────────── */
+    .error-msg {
+      background: var(--error-bg); border: 1px solid var(--error-border); color: var(--error-text);
+      padding: 14px 18px; border-radius: 14px; margin-bottom: 18px;
+      font-size: 0.88rem; font-weight: 600;
+    }
+    .loading-msg { text-align: center; color: var(--neutral-600); padding: 64px; font-size: 0.9rem; }
+
+    /* ── Tracked summary ─────────────────────────────────────────────────── */
+    .tracked-card {
+      background: white; border-radius: 14px; box-shadow: var(--shadow);
+      padding: 20px 24px; margin-bottom: 22px;
+    }
+    .tracked-card summary {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--neutral-600);
+      cursor: pointer; user-select: none; list-style: none;
+      display: flex; align-items: center;
+      margin-bottom: 14px;
+    }
+    .tracked-card summary::-webkit-details-marker { display: none; }
+    .tracked-card summary::before {
+      content: '▾'; font-size: 1rem; color: var(--neutral-800); opacity: 0.7;
+      transition: transform .2s; display: inline-block; margin-right: 8px;
+    }
+    .tracked-card details:not([open]) summary { margin-bottom: 0; }
+    .tracked-card details:not([open]) summary::before { transform: rotate(-90deg); }
+    .tracked-list { display: flex; flex-direction: column; }
+    .tracked-person {
+      display: grid;
+      grid-template-columns: 3.5rem 1fr auto;
+      align-items: center;
+      gap: 0 16px;
+      padding: 10px 14px;
+      border-radius: 10px;
+    }
+    .tracked-person + .tracked-person { margin-top: 4px; }
+    .tracked-person.found  { background: var(--green-light); border: 1px solid var(--green-dark); }
+    .tracked-person .ttime {
+      font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums;
+      color: var(--neutral-800);
+    }
+    .tracked-person .tname  { font-size: 0.88rem; font-weight: 700; color: var(--dark); }
+    .tracked-person .tdetail { font-size: 0.78rem; font-weight: 600; color: var(--green-dark); text-align: right; }
+
+    /* ── Stats ───────────────────────────────────────────────────────────── */
+    .stats-bar { font-size: 0.82rem; font-weight: 600; color: var(--neutral-600); margin-bottom: 14px; padding: 0 2px; }
+    .stats-bar strong { color: var(--neutral-800); }
+
+    /* ── Table filter bar ───────────────────────────────────────────────── */
+    .table-filters {
+      padding: 0 2px 14px; margin-bottom: 0;
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    }
+    .tf-select {
+      flex: none; width: 160px; padding: 6px 10px; border: 1px solid var(--neutral-300); border-radius: 8px;
+      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      color: var(--dark); background: var(--neutral-200); cursor: pointer;
+    }
+    .tf-select:focus { outline: none; border-color: var(--teal); }
+    .btn-clear {
+      padding: 6px 14px; border-radius: 48px; border: 1px solid var(--reset-border);
+      background: var(--reset-bg); font-family: inherit; font-size: 0.78rem; font-weight: 600;
+      color: var(--neutral-600); cursor: pointer; transition: all .15s; margin-left: auto;
+    }
+    .btn-clear:hover { border-color: var(--orange); color: var(--orange); }
+
+    /* ── Multi-select dropdown ──────────────────────────────────────────── */
+    .multiselect { position: relative; }
+    .multiselect-btn {
+      padding: 6px 28px 6px 10px; border: 1px solid var(--neutral-300); border-radius: 8px;
+      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      color: var(--dark); background: var(--neutral-200); cursor: pointer;
+      width: 160px; text-align: left; position: relative; white-space: nowrap;
+    }
+    .multiselect-btn::after {
+      content: '▾'; position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+      font-size: 0.7rem; color: var(--neutral-600); pointer-events: none;
+    }
+    .multiselect-btn:focus { outline: none; border-color: var(--teal); }
+    .multiselect-btn.has-selection { border-color: var(--teal); color: var(--teal-dark); }
+    .multiselect-panel {
+      position: absolute; top: calc(100% + 4px); left: 0; z-index: 200;
+      background: white; border: 1px solid var(--neutral-300); border-radius: 10px;
+      box-shadow: var(--shadow); min-width: 100%; max-height: 384px; overflow-y: auto;
+      padding: 4px 0; display: none;
+    }
+    .multiselect-panel.open { display: block; }
+    .ms-option {
+      display: flex; align-items: center; gap: 9px;
+      padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      color: var(--dark); user-select: none;
+    }
+    .ms-option:hover { background: var(--neutral-200); }
+    .ms-option input[type=checkbox] { accent-color: var(--teal); width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── Start list table ───────────────────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 8px 6px; font-size: 0.68rem; font-weight: 700;
+      color: var(--th-text); text-transform: uppercase; letter-spacing: .07em;
+      text-align: left; background: var(--dark);
+      border-bottom: none; white-space: nowrap;
+    }
+    thead th.sortable { cursor: pointer; user-select: none; }
+    thead th.sortable:hover { color: white; }
+    thead th .sort-icon { margin-left: 4px; opacity: 0.35; font-style: normal; font-size: 0.65rem; }
+    thead th.sort-asc .sort-icon,
+    thead th.sort-desc .sort-icon { opacity: 1; color: var(--teal); }
+    tbody tr { border-bottom: 1px solid var(--neutral-300); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover td { background: var(--neutral-200); }
+    td { padding: 6px 6px; font-size: 0.875rem; color: var(--gray); }
+    td.name { font-weight: 600; color: var(--dark); width: 35%; }
+    td.time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--neutral-800); white-space: nowrap; padding-left: 18px; padding-right: 6px; }
+    th.time { width: 1px; white-space: nowrap; padding-left: 18px; padding-right: 6px; }
+
+    td.filterable { cursor: pointer; }
+    td.filterable:hover { text-decoration: underline; }
+
+    tr.tracked td       { background: var(--green-light); }
+    tr.tracked td.name  { color: var(--green-dark); }
+    tr.tracked:hover td { background: var(--green-hover); }
+
+    .hidden { display: none; }
+
+    /* ── Oppsal råtasser table ──────────────────────────────────────────────── */
+    .oppsal-table-wrap { overflow-x: auto; margin: 0 -24px -20px; border-radius: 0 0 14px 14px; }
+    .oppsal-table-wrap table { width: 100%; border-collapse: collapse; }
+    .oppsal-table-wrap thead th {
+      padding: 8px 18px; font-size: 0.68rem; font-weight: 700;
+      color: var(--th-text); text-transform: uppercase; letter-spacing: .07em;
+      text-align: left; background: var(--blue-header); white-space: nowrap;
+    }
+    .oppsal-table-wrap thead th.sortable { cursor: pointer; user-select: none; }
+    .oppsal-table-wrap thead th.sortable:hover { color: white; }
+    .oppsal-table-wrap thead th .sort-icon { margin-left: 4px; opacity: 0.35; font-style: normal; font-size: 0.65rem; }
+    .oppsal-table-wrap thead th.sort-asc .sort-icon,
+    .oppsal-table-wrap thead th.sort-desc .sort-icon { opacity: 1; color: var(--blue-light); }
+    .oppsal-table-wrap tbody tr { border-bottom: 1px solid var(--oppsal-row-border); transition: background .15s; }
+    .oppsal-table-wrap tbody tr:last-child { border-bottom: none; }
+    .oppsal-table-wrap td { padding: 11px 18px; font-size: 0.875rem; background: var(--blue-light); color: var(--blue-text); }
+    .oppsal-table-wrap td.name { font-weight: 600; color: var(--dark); }
+    .oppsal-table-wrap td.time { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; padding-right: 8px; }
+    .oppsal-table-wrap th.time { width: 10%; padding-right: 8px; }
+    .oppsal-table-wrap tbody tr:hover td { background: var(--oppsal-row-hover); }
+    .oppsal-table-wrap th:nth-child(3),
+    .oppsal-table-wrap td:nth-child(3) { width: 25%; padding-left: 8px; padding-right: 8px; }
+
+    /* ── Section spacing ────────────────────────────────────────────────────── */
+    #oppsalCard { margin-bottom: 32px; }
+
+    /* ── Main table (inside tracked-card) ───────────────────────────────────── */
+    .main-table-wrap { overflow-x: auto; margin: 0 -10px -10px; border-radius: 0 0 14px 14px; }
+    .main-table-wrap table { width: 100%; border-collapse: collapse; }
+    .main-table-wrap thead th { background: var(--blue-header); }
+    .main-table-wrap th.time        { min-width: 72px; }
+    .main-table-wrap th[data-col="name"]  { min-width: 160px; }
+    .main-table-wrap th[data-col="class"] { min-width: 100px; }
+    .main-table-wrap th[data-col="club"]  { min-width: 130px; }
+
+    /* ── Show-list button ───────────────────────────────────────────────────── */
+    .btn-show-list {
+      display: block; width: 100%; padding: 8px;
+      background: var(--blue-button); color: white; border: none; border-radius: 14px;
+      font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn-show-list:hover { background: var(--blue-header); }
+
+    /* ── Pagination ─────────────────────────────────────────────────────────── */
+    .pagination {
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      padding: 16px 0 4px;
+    }
+    .pg-btn {
+      padding: 6px 18px; border-radius: 48px; border: 1px solid var(--neutral-300);
+      background: none; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      color: var(--neutral-600); cursor: pointer; transition: all .15s;
+    }
+    .pg-btn:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-dark); }
+    .pg-btn:disabled { opacity: 0.35; cursor: default; }
+    .pg-info { font-size: 0.82rem; font-weight: 600; color: var(--neutral-600); }
+
+    /* ── Tab bar (lives in header) ──────────────────────────────────────────── */
+    .tab-btn {
+      padding: 14px 12px; border: none; background: none;
+      font-family: inherit; font-size: 0.88rem; font-weight: 600;
+      color: var(--neutral-600); cursor: pointer;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab-btn.active { color: var(--dark); border-bottom-color: var(--orange); }
+    .tab-btn:hover:not(.active) { color: var(--dark); }
+
+    /* ── Live results ───────────────────────────────────────────────────────── */
+    .live-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    }
+    .live-title-block { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .live-title {
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--neutral-600);
+    }
+    .live-updated { font-size: 0.72rem; color: var(--neutral-600); }
+    .btn-refresh {
+      padding: 6px 16px; border-radius: 48px; border: none;
+      background: var(--blue-button); color: white;
+      font-family: inherit; font-size: 0.78rem; font-weight: 600;
+      cursor: pointer; transition: background .15s; white-space: nowrap;
+    }
+    .btn-refresh:hover { background: var(--blue-header); }
+
+    .live-list { display: flex; flex-direction: column; gap: 6px; }
+    .live-person { padding: 12px 16px; border-radius: 12px; }
+    .live-person.live-done    { background: var(--green-light); border: 1px solid var(--green-dark); }
+    .live-person.live-running { background: #FCE0DB;             border: 1px solid #e8b8b0; }
+    .live-person.live-bad     { background: var(--neutral-300); border: 1px solid #ccc; }
+    .live-person.live-blue.live-done    { background: var(--blue-light); border-color: #8aadcc; }
+    .live-person.live-blue.live-running { background: #FCE0DB;           border-color: #e8b8b0; }
+
+    .live-row1 {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 4px;
+    }
+    .live-row2 { display: flex; }
+    .live-pname    { font-size: 1rem;   font-weight: 700; color: var(--dark); }
+    .live-pclass   { font-size: 0.78rem; font-weight: 600; color: var(--green-dark); }
+    .live-blue .live-pclass { color: var(--blue-text); }
+    .live-pdetails { font-size: 0.82rem; font-weight: 600; color: var(--neutral-600); font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-tabs">
+      <button class="tab-btn active" id="tabStartBtn">Startliste</button>
+      <button class="tab-btn" id="tabLiveBtn">Resultater</button>
+    </div>
+    <div class="header-actions">
+      <div class="hero-event-picker">
+        <button class="btn-velg-lop" id="velgLopBtn" disabled>Velg løp ▾</button>
+        <div class="velg-lop-panel" id="velgLopPanel"></div>
+      </div>
+      <button class="btn-reload-events" id="reloadEventsBtn" title="Hent nye data fra Eventor" disabled>↺</button>
+    </div>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <div class="hero-nav">
+      <p id="hero-sub">Laster inn løp…</p>
+    </div>
+    <div id="eventor-link-row" class="hidden">
+      <a id="hero-link" href="#" target="_blank"></a>
+    </div>
+    <select id="eventSelect" style="display:none" disabled>
+      <option value="">Laster arrangementer…</option>
+    </select>
+  </div>
+</div>
+
+<div class="container">
+
+  <div id="message"></div>
+
+  <div id="tab-start">
+    <div id="trackedCard" class="tracked-card hidden"></div>
+    <div id="oppsalCard" class="tracked-card hidden"></div>
+    <div id="startList"></div>
+  </div>
+
+  <div id="tab-live" class="hidden">
+    <div id="liveResLink" class="hidden"></div>
+    <div id="liveCard"></div>
+    <div id="liveRaatSection" class="hidden" style="margin-top:8px">
+      <button class="btn-show-list" id="liveRaatBtn">Vis råtasser</button>
+      <div id="liveRaatCard"></div>
+    </div>
+  </div>
+
+</div>
+
+
+<script>
+  // ── Class sort ─────────────────────────────────────────────────────────────
+  // Order: 1) "åpen" classes (alpha), 2) D/H age classes by age then D<H, 3) rest (alpha)
+  function classSortKey(name) {
+    const lower = name.toLowerCase();
+    if (lower.includes('åpen')) return [0, lower];
+    const m = name.match(/^([DdHh])\s*(\d+)/);
+    if (m) return [1, parseInt(m[2], 10), m[1].toUpperCase() === 'D' ? 0 : 1, lower];
+    return [2, lower];
+  }
+  function compareClasses(a, b) {
+    const ka = classSortKey(a), kb = classSortKey(b);
+    const len = Math.max(ka.length, kb.length);
+    for (let i = 0; i < len; i++) {
+      const va = ka[i], vb = kb[i];
+      if (va === vb) continue;
+      if (va === undefined) return -1;
+      if (vb === undefined) return 1;
+      if (va < vb) return -1;
+      if (va > vb) return 1;
+    }
+    return 0;
+  }
+
+  // ── Configuration ──────────────────────────────────────────────────────────
+  // Local dev: leave as '' (Flask handles the routes).
+  // Production: set to your Worker URL, e.g. 'https://eventor-startliste.yourname.workers.dev'
+  const WORKER_URL = '';
+
+  const TRACKED = [
+    "Nina Iren Hoven",
+    "Sindre Fjogstad",
+    "Oskar Hoven Fjogstad",
+    "Benjamin Hoven Fjogstad",
+    "Bjørg Ingunn Fjogstad",
+    "Anders Fjogstad",
+  ];
+
+  const TRACKED_DISPLAY = {
+    "Nina Iren Hoven":         "Nina",
+    "Sindre Fjogstad":         "Sindre",
+    "Oskar Hoven Fjogstad":    "Oskar",
+    "Benjamin Hoven Fjogstad": "Benjamin",
+    "Bjørg Ingunn Fjogstad":   "Bjørg Ingunn",
+    "Anders Fjogstad":         "Anders",
+  };
+
+  const OPPSAL_CLASSES = new Set(['N1-åpen', 'N2-åpen 9-16', 'C-åpen 10-16',
+                                   'D 9-10', 'H 9-10', 'D 11-12', 'H 11-12']);
+
+  function shortClub(name) {
+    return name.replace(/\s*\borientering\b\s*/gi, ' ').trim();
+  }
+
+  function fmtTime(t) {
+    if (!t) return '';
+    const parts = t.split(':');
+    return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : t;
+  }
+
+  function fmtMs(ms) {
+    if (ms == null) return '–';
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+
+  // ── Event list state ───────────────────────────────────────────────────────
+  let allEvents = [];
+
+  // ── XML helpers ────────────────────────────────────────────────────────────
+  const xmlParser = new DOMParser();
+  function parseXml(str) { return xmlParser.parseFromString(str, 'application/xml'); }
+
+  function child(el, name) {
+    return Array.from(el.children).find(c => c.localName === name) || null;
+  }
+  function children(el, name) {
+    return Array.from(el.children).filter(c => c.localName === name);
+  }
+  function walkAll(root, name) {
+    return Array.from(root.getElementsByTagName('*')).filter(el => el.localName === name);
+  }
+  function txt(el, ...path) {
+    let cur = el;
+    for (const name of path) { if (!cur) return ''; cur = child(cur, name); }
+    return cur?.textContent?.trim() || '';
+  }
+
+  // ── Parse events XML ───────────────────────────────────────────────────────
+  function parseEvents(doc) {
+    const events = {};
+
+    // Primary path: /entries response with <Entry><Event> structure.
+    for (const entry of walkAll(doc, 'Entry')) {
+      const ev = child(entry, 'Event');
+      if (!ev) continue;
+      const id = txt(ev, 'EventId');
+      if (!id || events[id]) continue;
+      events[id] = { id, name: txt(ev, 'Name') || `Event ${id}`,
+        date: txt(ev, 'StartDate', 'Date') || txt(ev, 'StartDate') };
+    }
+
+    // Fallback: /starts/person response with <StartList><Event> structure
+    // (used when /entries returns 400 for this API key).
+    if (!Object.keys(events).length) {
+      for (const ev of walkAll(doc, 'Event')) {
+        const id = txt(ev, 'EventId');
+        if (!id || events[id]) continue;
+        events[id] = { id, name: txt(ev, 'Name') || `Event ${id}`,
+          date: txt(ev, 'StartDate', 'Date') || txt(ev, 'StartDate') };
+      }
+    }
+
+    return Object.values(events).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // ── Parse tracked starts from /my-events XML ──────────────────────────────
+  // /my-events only contains starts for tracked people, grouped by event.
+  function parseTrackedStarts(doc) {
+    const result = {};
+    for (const startList of walkAll(doc, 'StartList')) {
+      const ev = child(startList, 'Event');
+      if (!ev) continue;
+      const eventId = txt(ev, 'EventId');
+      if (!eventId) continue;
+      if (!result[eventId]) result[eventId] = [];
+      for (const classStart of walkAll(startList, 'ClassStart')) {
+        const className = txt(classStart, 'EventClass', 'Name') ||
+                          txt(classStart, 'Class', 'Name') || '';
+        for (const ps of children(classStart, 'PersonStart')) {
+          const person  = child(ps, 'Person');
+          const nameEl  = person ? child(person, 'PersonName') || child(person, 'Name') : null;
+          const given   = txt(nameEl, 'Given');
+          const family  = txt(nameEl, 'Family');
+          const org     = child(ps, 'Organisation');
+          const club    = org ? (txt(org, 'ShortName') || txt(org, 'Name')) : '';
+          const startEl = child(ps, 'Start');
+          let startTime = '';
+          if (startEl) {
+            const st = child(startEl, 'StartTime');
+            startTime = st ? (txt(st, 'Clock') || st.textContent.trim()) : '';
+          }
+          const fullName = `${given} ${family}`.trim();
+          result[eventId].push({ firstName: given, lastName: family, fullName,
+            club, class: className, startTime, tracked: true });
+        }
+      }
+    }
+    for (const id of Object.keys(result)) {
+      result[id].sort((a, b) => {
+        if (!a.startTime && !b.startTime) return 0;
+        if (!a.startTime) return 1;
+        if (!b.startTime) return -1;
+        return a.startTime.localeCompare(b.startTime);
+      });
+    }
+    return result;
+  }
+
+  // ── Parse start list XML ───────────────────────────────────────────────────
+  function parseStartList(doc) {
+    const competitors = [];
+
+    for (const classStart of walkAll(doc, 'ClassStart')) {
+      const className = txt(classStart, 'EventClass', 'Name') ||
+                        txt(classStart, 'Class', 'Name') || 'Unknown';
+
+      for (const ps of children(classStart, 'PersonStart')) {
+        const person = child(ps, 'Person');
+        const nameEl = person ? child(person, 'PersonName') || child(person, 'Name') : null;
+
+        const given  = txt(nameEl, 'Given');
+        const family = txt(nameEl, 'Family');
+
+        const org  = child(ps, 'Organisation');
+        const club = org ? (txt(org, 'ShortName') || txt(org, 'Name')) : '';
+
+        const startEl = child(ps, 'Start');
+        let startTime = '';
+        if (startEl) {
+          const st = child(startEl, 'StartTime');
+          startTime = st ? (txt(st, 'Clock') || st.textContent.trim()) : '';
+        }
+
+        const fullName = `${given} ${family}`.trim();
+        competitors.push({
+          firstName: given, lastName: family, fullName,
+          club, class: className, startTime,
+          tracked: TRACKED.includes(fullName),
+        });
+      }
+    }
+
+    competitors.sort((a, b) => {
+      const classCmp = compareClasses(a.class, b.class);
+      if (classCmp !== 0) return classCmp;
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime);
+    });
+    return competitors;
+  }
+
+  // ── Filter UI ──────────────────────────────────────────────────────────────
+  function populateEventSelect() {
+    const sel = document.getElementById('eventSelect');
+    if (!allEvents.length) { sel.disabled = true; return; }
+    sel.innerHTML = allEvents.map(e =>
+      `<option value="${e.id}">${e.date} – ${e.name}</option>`
+    ).join('');
+    sel.disabled = false;
+    populateVelgLopPanel();
+  }
+
+  function populateVelgLopPanel() {
+    const panel = document.getElementById('velgLopPanel');
+    const currentId = document.getElementById('eventSelect').value;
+    panel.innerHTML = allEvents.map(e => {
+      const parts = e.date ? e.date.split('-') : [];
+      const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : (e.date || '');
+      return `<div class="velg-lop-item${e.id === currentId ? ' active' : ''}" data-id="${e.id}">
+        ${dateStr ? `<span class="ev-date">${dateStr}</span>` : ''}
+        <span>${e.name}</span>
+      </div>`;
+    }).join('');
+    panel.querySelectorAll('.velg-lop-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const sel = document.getElementById('eventSelect');
+        sel.value = item.dataset.id;
+        sel.dispatchEvent(new Event('change'));
+        panel.classList.remove('open');
+      });
+    });
+  }
+
+
+  // ── UI helpers ─────────────────────────────────────────────────────────────
+  function setMessage(html) {
+    document.getElementById('message').innerHTML =
+      html ? `<div class="error-msg">${html}</div>` : '';
+  }
+
+  function updateHero(eventId) {
+    const row  = document.getElementById('eventor-link-row');
+    const link = document.getElementById('hero-link');
+    const ev   = allEvents.find(e => e.id === eventId);
+    if (eventId && ev) {
+      const parts = ev.date ? ev.date.split('-') : [];
+      const dateStr = parts.length === 3 ? `${parts[2]}/${parts[1]}` : '';
+      document.getElementById('hero-sub').innerHTML = dateStr
+        ? `<span class="hero-date">${dateStr}</span>${ev.name}`
+        : ev.name;
+      link.href = `https://eventor.orientering.no/Events/Show/${eventId}`;
+      link.textContent = `eventor.orientering.no/Events/Show/${eventId}`;
+      row.classList.remove('hidden');
+    } else {
+      document.getElementById('hero-sub').textContent = 'Velg et løp';
+      row.classList.add('hidden');
+    }
+  }
+
+  function renderTrackedForEvent(eventId) {
+    const card = document.getElementById('trackedCard');
+    const starts = trackedStartsByEvent[eventId] || [];
+    if (!starts.length) { card.classList.add('hidden'); return; }
+    const rows = starts.map(c => `
+      <div class="tracked-person found">
+        <div class="ttime">${fmtTime(c.startTime) || '–'}</div>
+        <div class="tname">${TRACKED_DISPLAY[c.fullName] || c.firstName}</div>
+        <div class="tdetail">${c.class}</div>
+      </div>`).join('');
+    card.innerHTML = `<details open><summary>Fjoven + Fjogstad</summary><div class="tracked-list">${rows}</div></details>`;
+    card.classList.remove('hidden');
+  }
+
+  function showEventPreview(eventId) {
+    allCompetitors = [];
+    cachedStartListEventId = null;
+    document.getElementById('oppsalCard').classList.add('hidden');
+    document.getElementById('startList').innerHTML = '';
+    renderTrackedForEvent(eventId);
+    document.getElementById('startList').innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn-show-list" id="showOppsalBtn">Vis råtasser</button>
+        <button class="btn-show-list" id="showTableBtn">Vis komplett startliste</button>
+      </div>`;
+    document.getElementById('showOppsalBtn').addEventListener('click', loadOppsalOnly);
+    document.getElementById('showTableBtn').addEventListener('click', loadStartList);
+    if (startOppsalVisible) loadOppsalOnly();
+  }
+
+  function renderOppsalTable() {
+    const sorted = [...oppsalCompetitors].sort((a, b) => {
+      const { col, dir } = oppsalSort;
+      if (col === 'startTime') {
+        if (!a.startTime && !b.startTime) return 0;
+        if (!a.startTime) return 1;
+        if (!b.startTime) return -1;
+        return a.startTime.localeCompare(b.startTime) * dir;
+      }
+      const map = { name: 'fullName', class: 'class' };
+      return (a[map[col]] || '').localeCompare(b[map[col]] || '') * dir;
+    });
+
+    document.getElementById('oppsalTbody').innerHTML = sorted.map(c => `
+      <tr>
+        <td class="time">${fmtTime(c.startTime) || '–'}</td>
+        <td class="name">${c.fullName}</td>
+        <td>${c.class}</td>
+      </tr>`).join('');
+
+    document.querySelectorAll('.oppsal-table-wrap thead th.sortable').forEach(th => {
+      const col = th.dataset.col;
+      const icon = th.querySelector('.sort-icon');
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (col === oppsalSort.col) {
+        th.classList.add(oppsalSort.dir === 1 ? 'sort-asc' : 'sort-desc');
+        icon.textContent = oppsalSort.dir === 1 ? '▲' : '▼';
+      } else {
+        icon.textContent = '⇅';
+      }
+    });
+  }
+
+  function renderOppsalCard(competitors, open = true) {
+    const card = document.getElementById('oppsalCard');
+    oppsalCompetitors = competitors
+      .filter(c => c.club.toLowerCase().includes('oppsal') && OPPSAL_CLASSES.has(c.class));
+    if (!oppsalCompetitors.length) { card.classList.add('hidden'); return; }
+
+    card.innerHTML = `<details${open ? ' open' : ''}><summary>Oppsal råtasser: ${oppsalCompetitors.length} deltagere</summary>
+      <div class="oppsal-table-wrap">
+        <table>
+          <thead><tr>
+            <th class="time sortable sort-asc" data-col="startTime">Start <i class="sort-icon">▲</i></th>
+            <th class="sortable" data-col="name">Navn <i class="sort-icon">⇅</i></th>
+            <th class="sortable" data-col="class">Klasse <i class="sort-icon">⇅</i></th>
+          </tr></thead>
+          <tbody id="oppsalTbody"></tbody>
+        </table>
+      </div>
+    </details>`;
+    card.classList.remove('hidden');
+
+    document.querySelectorAll('.oppsal-table-wrap thead th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        oppsalSort = col === oppsalSort.col
+          ? { col, dir: oppsalSort.dir * -1 }
+          : { col, dir: 1 };
+        renderOppsalTable();
+      });
+    });
+
+    renderOppsalTable();
+  }
+
+  // ── Start list table state ────────────────────────────────────────────────
+  let allCompetitors = [];
+  let trackedStartsByEvent = {}; // eventId → [competitor, ...]
+  let cachedStartListEventId = null;
+  let tableFilter = { classes: new Set(), club: '', name: '' };
+  let tableSort   = { col: 'startTime', dir: 1 };
+  let tablePage   = 1;
+  const PAGE_SIZE = 80;
+
+  // ── Oppsal card state ─────────────────────────────────────────────────────
+  let oppsalCompetitors = [];
+  let oppsalSort = { col: 'startTime', dir: 1 };
+  let startOppsalVisible = localStorage.getItem('startOppsalVisible') === 'true';
+
+  // ── Tab + live state ──────────────────────────────────────────────────────
+  let activeTab = localStorage.getItem('activeTab') || 'start';
+  let liveRefreshTimer = null;
+  let liveLastFetched = null;
+  let liveInputOpen = false;
+  let liveAllEntries = [];
+  let liveRaatVisible = localStorage.getItem('liveRaatVisible') === 'true';
+
+  function buildTableFilters(competitors) {
+    const classes = [...new Set(competitors.map(c => c.class))].sort(compareClasses);
+    const allClubs = [...new Set(competitors.map(c => c.club).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    // Pin Oppsal to top with a separator; null renders as a disabled divider option.
+    const oppsalClub = allClubs.find(c => c.toLowerCase().includes('oppsal'));
+    const clubs = oppsalClub ? [oppsalClub, null, ...allClubs.filter(c => c !== oppsalClub)] : allClubs;
+    if (oppsalClub && !tableFilter.club) tableFilter.club = oppsalClub;
+
+    const panel = document.getElementById('classMultiselectPanel');
+    panel.innerHTML = classes.map(c => `
+      <label class="ms-option">
+        <input type="checkbox" value="${c.replace(/"/g, '&quot;')}"${tableFilter.classes.has(c) ? ' checked' : ''}>
+        ${c}
+      </label>`).join('');
+    panel.querySelectorAll('input[type=checkbox]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        if (cb.checked) tableFilter.classes.add(cb.value);
+        else tableFilter.classes.delete(cb.value);
+        updateClassBtn();
+        tablePage = 1;
+        renderTable();
+      });
+    });
+
+    document.getElementById('filterClub').innerHTML =
+      '<option value="">Alle klubber</option>' +
+      clubs.map(c => c === null ? '<option disabled>──────────────</option>' : `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('filterClub').value = tableFilter.club;
+
+    updateClassBtn();
+  }
+
+  function updateClassBtn() {
+    const btn = document.getElementById('classMultiselectBtn');
+    const n = tableFilter.classes.size;
+    btn.textContent = n ? `${n} klasse${n > 1 ? 'r' : ''} valgt` : 'Alle klasser';
+    btn.classList.toggle('has-selection', n > 0);
+  }
+
+  // Close multiselect panel when clicking outside (panel may not exist yet)
+  document.addEventListener('click', () => {
+    document.getElementById('classMultiselectPanel')?.classList.remove('open');
+  });
+
+  function sortCompare(a, b) {
+    const { col, dir } = tableSort;
+    if (col === 'startTime') {
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime) * dir;
+    }
+    const map = { name: 'fullName', class: 'class', club: 'club' };
+    return (a[map[col]] || '').localeCompare(b[map[col]] || '') * dir;
+  }
+
+  function renderTable() {
+    const nameQ = tableFilter.name.toLowerCase();
+    const filtered = allCompetitors.filter(c =>
+      (!tableFilter.classes.size || tableFilter.classes.has(c.class)) &&
+      (!tableFilter.club  || c.club  === tableFilter.club) &&
+      (!nameQ || c.fullName.toLowerCase().includes(nameQ))
+    );
+
+    const sorted = [...filtered].sort(sortCompare);
+
+    const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
+    if (tablePage > totalPages) tablePage = totalPages;
+    const page = sorted.slice((tablePage - 1) * PAGE_SIZE, tablePage * PAGE_SIZE);
+
+    document.getElementById('startListTbody').innerHTML = page.map(c => `
+      <tr class="${c.tracked ? 'tracked' : ''}">
+        <td class="time">${fmtTime(c.startTime) || '–'}</td>
+        <td class="name">${c.firstName} ${c.lastName}</td>
+        <td class="filterable" data-filter-class="${c.class.replace(/"/g, '&quot;')}">${c.class}</td>
+        <td class="filterable" data-filter-club="${c.club.replace(/"/g, '&quot;')}">${shortClub(c.club)}</td>
+      </tr>`).join('');
+
+    document.querySelectorAll('.main-table-wrap thead th.sortable').forEach(th => {
+      const col = th.dataset.col;
+      const icon = th.querySelector('.sort-icon');
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (col === tableSort.col) {
+        th.classList.add(tableSort.dir === 1 ? 'sort-asc' : 'sort-desc');
+        icon.textContent = tableSort.dir === 1 ? '▲' : '▼';
+      } else {
+        icon.textContent = '⇅';
+      }
+    });
+
+    const total = allCompetitors.length;
+    const oppsalCount = allCompetitors.filter(c => c.club.toLowerCase().includes('oppsal')).length;
+    const filteredNote = filtered.length < total ? ` (viser ${filtered.length} av ${total})` : '';
+    document.getElementById('statsBar').innerHTML =
+      `<strong>${total}</strong> utøvere totalt${filteredNote}` +
+      (oppsalCount ? ` &nbsp;·&nbsp; <strong>${oppsalCount}</strong> fra Oppsal` : '');
+
+    const pg = document.getElementById('pagination');
+    if (totalPages <= 1) {
+      pg.classList.add('hidden');
+    } else {
+      pg.classList.remove('hidden');
+      pg.innerHTML = `
+        <button class="pg-btn" id="pgPrev" ${tablePage === 1 ? 'disabled' : ''}>← Forrige</button>
+        <span class="pg-info">Side ${tablePage} av ${totalPages}</span>
+        <button class="pg-btn" id="pgNext" ${tablePage === totalPages ? 'disabled' : ''}>Neste →</button>`;
+      document.getElementById('pgPrev').addEventListener('click', () => { tablePage--; renderTable(); });
+      document.getElementById('pgNext').addEventListener('click', () => { tablePage++; renderTable(); });
+    }
+  }
+
+  function showTable() {
+    document.getElementById('startList').innerHTML = `
+      <div class="tracked-card" style="margin-bottom:0; padding: 10px;">
+        <div>
+          <div id="statsBar" class="stats-bar"></div>
+          <div class="table-filters">
+            <div class="multiselect" id="classMultiselect" style="flex:1 1 calc(50% - 4px); min-width:0">
+              <button class="multiselect-btn" id="classMultiselectBtn" type="button" style="width:100%">Alle klasser</button>
+              <div class="multiselect-panel" id="classMultiselectPanel"></div>
+            </div>
+            <select id="filterClub" class="tf-select" style="flex:1 1 calc(50% - 4px); min-width:0; width:auto"><option value="">Alle klubber</option></select>
+            <div style="display:flex; gap:8px; flex: 1 1 100%;">
+              <input id="filterName" type="search" class="tf-select" placeholder="Søk navn…" autocomplete="off" style="flex: 0 0 calc(80% - 4px); width:auto; min-width:0">
+              <button id="clearFilters" class="btn-clear" style="flex: 0 0 calc(20% - 4px); margin-left:0">Nullstill</button>
+            </div>
+          </div>
+          <div class="main-table-wrap">
+            <table>
+              <thead><tr>
+                <th class="time sortable sort-asc" data-col="startTime">Start <i class="sort-icon">▲</i></th>
+                <th class="sortable" data-col="name">Navn <i class="sort-icon">⇅</i></th>
+                <th class="sortable" data-col="class">Klasse <i class="sort-icon">⇅</i></th>
+                <th class="sortable" data-col="club">Klubb <i class="sort-icon">⇅</i></th>
+              </tr></thead>
+              <tbody id="startListTbody"></tbody>
+            </table>
+          </div>
+          <div id="pagination" class="pagination hidden"></div>
+        </div>
+      </div>`;
+
+    buildTableFilters(allCompetitors);
+
+    document.getElementById('classMultiselectBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('classMultiselectPanel').classList.toggle('open');
+    });
+    document.getElementById('classMultiselectPanel').addEventListener('click', e => e.stopPropagation());
+
+    document.getElementById('filterClub').addEventListener('change', function () {
+      tableFilter.club = this.value; tablePage = 1; renderTable();
+    });
+    document.getElementById('filterName').addEventListener('input', function () {
+      tableFilter.name = this.value; tablePage = 1; renderTable();
+    });
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      tableFilter = { classes: new Set(), club: '', name: '' };
+      tablePage = 1;
+      document.getElementById('filterClub').value = '';
+      document.getElementById('filterName').value = '';
+      document.querySelectorAll('#classMultiselectPanel input[type=checkbox]').forEach(cb => cb.checked = false);
+      updateClassBtn();
+      renderTable();
+    });
+
+    document.querySelectorAll('.main-table-wrap thead th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        tableSort = col === tableSort.col
+          ? { col, dir: tableSort.dir * -1 }
+          : { col, dir: 1 };
+        tablePage = 1;
+        renderTable();
+      });
+    });
+
+    document.querySelector('.main-table-wrap').addEventListener('click', e => {
+      const td = e.target.closest('td.filterable');
+      if (!td) return;
+      if (td.dataset.filterClass) {
+        const cls = td.dataset.filterClass;
+        tableFilter.classes = new Set([cls]);
+        document.querySelectorAll('#classMultiselectPanel input[type=checkbox]').forEach(cb => {
+          cb.checked = cb.value === cls;
+        });
+        updateClassBtn();
+      }
+      if (td.dataset.filterClub !== undefined) {
+        tableFilter.club = td.dataset.filterClub;
+        document.getElementById('filterClub').value = td.dataset.filterClub;
+      }
+      tablePage = 1;
+      renderTable();
+    });
+
+    renderTable();
+  }
+
+  function renderStartList(competitors) {
+    allCompetitors = competitors;
+    tableFilter = { classes: new Set(), club: '', name: '' };
+    tableSort   = { col: 'startTime', dir: 1 };
+    tablePage   = 1;
+    oppsalSort  = { col: 'startTime', dir: 1 };
+
+    renderTrackedForEvent(document.getElementById('eventSelect').value);
+    renderOppsalCard(competitors, false);
+    showTable();
+  }
+
+  // ── Load Oppsal card only ──────────────────────────────────────────────────
+  async function loadOppsalOnly() {
+    const eventId = document.getElementById('eventSelect').value;
+    if (!eventId) return;
+    startOppsalVisible = true;
+    localStorage.setItem('startOppsalVisible', 'true');
+
+    setMessage('');
+    oppsalSort = { col: 'startTime', dir: 1 };
+    document.getElementById('oppsalCard').classList.add('hidden');
+    document.getElementById('startList').innerHTML = '<div class="loading-msg">Laster råtasser…</div>';
+
+    try {
+      const resp = await fetch(`${WORKER_URL}/startlist?eventId=${eventId}`);
+      const text = await resp.text();
+      if (!resp.ok) {
+        let msg = `HTTP ${resp.status}`;
+        try { msg = JSON.parse(text).error || msg; } catch {}
+        throw new Error(msg);
+      }
+      allCompetitors = parseStartList(parseXml(text));
+      cachedStartListEventId = eventId;
+      renderOppsalCard(allCompetitors);
+      document.getElementById('startList').innerHTML =
+        `<button class="btn-show-list" id="showTableBtn">Vis komplett startliste</button>`;
+      document.getElementById('showTableBtn').addEventListener('click', loadStartList);
+    } catch (e) {
+      document.getElementById('startList').innerHTML = '';
+      setMessage(e.message);
+    }
+  }
+
+  // ── Load start list ────────────────────────────────────────────────────────
+  async function loadStartList() {
+    const eventId = document.getElementById('eventSelect').value;
+    if (!eventId) return;
+    startOppsalVisible = false;
+    localStorage.setItem('startOppsalVisible', 'false');
+    setMessage('');
+
+    if (cachedStartListEventId === eventId && allCompetitors.length) {
+      document.getElementById('startList').innerHTML = '';
+      renderStartList(allCompetitors);
+      return;
+    }
+
+    document.getElementById('startList').innerHTML = '<div class="loading-msg">Laster startliste…</div>';
+    try {
+      const resp = await fetch(`${WORKER_URL}/startlist?eventId=${eventId}`);
+      const text = await resp.text();
+      if (!resp.ok) {
+        let msg = `HTTP ${resp.status}`;
+        try { msg = JSON.parse(text).error || msg; } catch {}
+        throw new Error(msg);
+      }
+      const competitors = parseStartList(parseXml(text));
+      cachedStartListEventId = eventId;
+      document.getElementById('startList').innerHTML = '';
+      renderStartList(competitors);
+    } catch (e) {
+      document.getElementById('startList').innerHTML = '';
+      setMessage(e.message);
+    }
+  }
+
+  // ── Load events ────────────────────────────────────────────────────────────
+  async function loadEvents() {
+    try {
+      const resp = await fetch(`${WORKER_URL}/my-events`);
+      const text = await resp.text();
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      const doc = parseXml(text);
+      allEvents = parseEvents(doc);
+      trackedStartsByEvent = parseTrackedStarts(doc);
+
+      if (!allEvents.length) {
+        document.getElementById('eventSelect').innerHTML = '<option value="">Ingen arrangementer funnet</option>';
+        return;
+      }
+
+      populateEventSelect();
+      document.getElementById('reloadEventsBtn').disabled = false;
+
+      document.getElementById('velgLopBtn').disabled = false;
+      const sel = document.getElementById('eventSelect');
+      const savedId = localStorage.getItem('lastEventId');
+      const ids = [...sel.options].map(o => o.value);
+      const autoId = (savedId && ids.includes(savedId))
+        ? savedId
+        : (() => {
+            const today = new Date().toISOString().slice(0, 10);
+            return (allEvents.find(e => e.date >= today) || allEvents[allEvents.length - 1])?.id;
+          })();
+      if (autoId) {
+        sel.value = autoId;
+        localStorage.setItem('lastEventId', autoId);
+        updateHero(autoId);
+        showEventPreview(autoId);
+        if (activeTab === 'live') initLiveTab(autoId);
+      }
+    } catch (e) {
+      setMessage(`Kunne ikke laste arrangementer: ${e.message}`);
+      document.getElementById('eventSelect').innerHTML = '<option value="">Feil ved lasting</option>';
+    }
+  }
+
+  // ── Reload (clear cache + re-fetch) ───────────────────────────────────────
+  async function reloadFromEventor() {
+    const btn = document.getElementById('reloadEventsBtn');
+    const sel = document.getElementById('eventSelect');
+    const eventId = sel.value;
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      await fetch(`${WORKER_URL}/refresh?eventId=${eventId || ''}`, { method: 'POST' });
+    } catch {}
+    allEvents = [];
+    allCompetitors = [];
+    cachedStartListEventId = null;
+    document.getElementById('trackedCard').classList.add('hidden');
+    document.getElementById('oppsalCard').classList.add('hidden');
+    document.getElementById('startList').innerHTML = '';
+    await loadEvents();
+    btn.textContent = '↺';
+    btn.disabled = false;
+  }
+
+  document.getElementById('reloadEventsBtn').addEventListener('click', reloadFromEventor);
+
+  // ── Tab switching ──────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    activeTab = tab;
+    localStorage.setItem('activeTab', tab);
+    document.getElementById('tab-start').classList.toggle('hidden', tab !== 'start');
+    document.getElementById('tab-live').classList.toggle('hidden', tab !== 'live');
+    document.getElementById('tabStartBtn').classList.toggle('active', tab === 'start');
+    document.getElementById('tabLiveBtn').classList.toggle('active', tab === 'live');
+
+    if (tab === 'live') {
+      const eventId = document.getElementById('eventSelect').value;
+      if (eventId) initLiveTab(eventId);
+      startLiveRefresh();
+    } else {
+      stopLiveRefresh();
+    }
+  }
+
+  function startLiveRefresh() {
+    stopLiveRefresh();
+    liveRefreshTimer = setInterval(() => {
+      if (activeTab !== 'live') return;
+      const eventId = document.getElementById('eventSelect').value;
+      if (!eventId) return;
+      const raceId = localStorage.getItem(`liveRaceId:${eventId}`);
+      if (raceId) loadLiveByRaceId(raceId, eventId, true);
+    }, 30000);
+  }
+
+  function stopLiveRefresh() {
+    if (liveRefreshTimer) { clearInterval(liveRefreshTimer); liveRefreshTimer = null; }
+  }
+
+  // ── Live results ───────────────────────────────────────────────────────────
+  function setLiveResLink(raceId, eventId, raceName = '') {
+    if (liveInputOpen) return;
+    const linkEl = document.getElementById('liveResLink');
+    if (!linkEl) return;
+    const url = `https://liveres.live/followfull.php?time4o&comp=${raceId}&lang=no`;
+    const nameHtml = raceName
+      ? `<span style="font-size:0.78rem;font-weight:600;color:var(--dark)">${raceName}</span>`
+      : '';
+    linkEl.innerHTML = `
+      <div class="tracked-card" style="margin-bottom:22px">
+        <a href="${url}" target="_blank" rel="noopener">↗ ${url.replace('https://', '').slice(0, 41)}…</a>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px">
+          ${nameHtml || '<span></span>'}
+          <button class="btn-clear" id="liveClearBtn" style="font-size:0.72rem;padding:4px 10px;flex-shrink:0;margin-left:auto">Bytt lenke</button>
+        </div>
+      </div>`;
+    linkEl.classList.remove('hidden');
+    document.getElementById('liveClearBtn').addEventListener('click', () => {
+      linkEl.classList.add('hidden');
+      showLiveUrlInput(eventId, raceId);
+    });
+  }
+
+  async function initLiveTab(eventId) {
+    liveAllEntries = [];
+    document.getElementById('liveRaatSection').classList.add('hidden');
+    document.getElementById('liveRaatCard').innerHTML = '';
+    // Fast path: localStorage cache
+    const cached = localStorage.getItem(`liveRaceId:${eventId}`);
+    if (cached) {
+      setLiveResLink(cached, eventId);
+      loadLiveByRaceId(cached, eventId);
+      return;
+    }
+    // Fall back to server
+    try {
+      const resp = await fetch(`${WORKER_URL}/livelink?eventId=${eventId}`);
+      const json = await resp.json().catch(() => ({}));
+      if (json.raceId) {
+        localStorage.setItem(`liveRaceId:${eventId}`, json.raceId);
+        setLiveResLink(json.raceId, eventId);
+        loadLiveByRaceId(json.raceId, eventId);
+        return;
+      }
+    } catch {}
+    document.getElementById('liveResLink').classList.add('hidden');
+    showLiveUrlInput(eventId);
+  }
+
+  function classifyLiveEntry(status, t, finishDisp, startDisp, position) {
+    const startPart  = startDisp  ? `Start ${startDisp}`  : '';
+    const finishPart = finishDisp ? `Mål ${finishDisp}`   : '';
+    if (status === 'DidNotStart')  return { rowClass: 'live-bad',  detailParts: ['DNS', startPart] };
+    if (status === 'DidNotFinish') return { rowClass: 'live-bad',  detailParts: ['DNF', startPart] };
+    if (status === 'Disqualified') return { rowClass: 'live-bad',  detailParts: ['DSQ', startPart] };
+    if (status === 'MissingPunch') return { rowClass: 'live-done', detailParts: [startPart, finishPart, t != null ? fmtMs(t) : '', 'MP'] };
+    if (t != null) {
+      const parts = [startPart, finishPart, fmtMs(t)];
+      if (position !== undefined) parts.push(`${position ?? '–'}. plass`);
+      return { rowClass: 'live-done', detailParts: parts };
+    }
+    return { rowClass: 'live-running', detailParts: ['Pågår…', startPart] };
+  }
+
+
+  function showLiveUrlInput(eventId, existingRaceId = null) {
+    liveInputOpen = true;
+    const card = document.getElementById('liveCard');
+    const existingUrl = existingRaceId
+      ? `https://liveres.live/followfull.php?time4o&comp=${existingRaceId}&lang=no`
+      : '';
+    card.innerHTML = `
+      <div class="tracked-card">
+        <p style="font-size:0.88rem;color:var(--neutral-600);margin-bottom:12px">
+          Lim inn liveres.live-lenken fra Eventor-siden for dette løpet:
+        </p>
+        <input id="liveUrlInput" type="text" class="tf-select" autocomplete="off"
+          value="${existingUrl.replace(/"/g, '&quot;')}"
+          style="width:100%;margin-bottom:10px">
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn-clear" id="liveUrlClear"
+            style="font-size:0.78rem;padding:6px 12px;margin-left:0">Clear</button>
+          ${existingRaceId ? '<button type="button" class="btn-clear" id="liveUrlCancel" style="font-size:0.78rem;padding:6px 12px;margin-left:0">Cancel</button>' : ''}
+          <button type="button" class="btn-refresh" id="liveUrlSubmit">Get</button>
+        </div>
+      </div>`;
+    const submit = () => {
+      const val = document.getElementById('liveUrlInput').value.trim();
+      if (!val) {
+        liveInputOpen = false;
+        localStorage.removeItem(`liveRaceId:${eventId}`);
+        fetch(`${WORKER_URL}/livelink?eventId=${eventId}`, { method: 'POST' }).catch(() => {});
+        document.getElementById('liveResLink').classList.add('hidden');
+        showLiveUrlInput(eventId);
+        return;
+      }
+      const m = val.match(/comp=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+      if (!m) { document.getElementById('liveUrlInput').style.borderColor = 'var(--error-border)'; return; }
+      liveInputOpen = false;
+      loadLiveByRaceId(m[1], eventId);
+    };
+    document.getElementById('liveUrlClear').addEventListener('click', () => {
+      const input = document.getElementById('liveUrlInput');
+      input.value = '';
+      input.style.borderColor = '';
+      input.focus();
+    });
+    document.getElementById('liveUrlSubmit').addEventListener('click', submit);
+    document.getElementById('liveUrlInput').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    if (existingRaceId) {
+      document.getElementById('liveUrlCancel').addEventListener('click', () => {
+        liveInputOpen = false;
+        setLiveResLink(existingRaceId, eventId);
+        loadLiveByRaceId(existingRaceId, eventId);
+      });
+    }
+  }
+
+  async function loadLiveByRaceId(raceId, eventId, silent = false) {
+    const card = document.getElementById('liveCard');
+    if (!silent) card.innerHTML = '<div class="loading-msg">Laster live resultater…</div>';
+    try {
+      const resp = await fetch(`${WORKER_URL}/liveresults?raceId=${encodeURIComponent(raceId)}`);
+      if (document.getElementById('eventSelect').value !== eventId) return;
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        if (!silent) card.innerHTML = `<div class="error-msg">${json.error || `HTTP ${resp.status}`}</div>`;
+        return;
+      }
+      localStorage.setItem(`liveRaceId:${eventId}`, raceId);
+      fetch(`${WORKER_URL}/livelink?eventId=${eventId}&raceId=${encodeURIComponent(raceId)}`, { method: 'POST' }).catch(() => {});
+      liveLastFetched = new Date();
+      liveAllEntries = json.data || [];
+      const entries = liveAllEntries.filter(e => TRACKED.includes(e.person?.name));
+      renderLiveCard(entries, eventId, raceId);
+      fetch(`${WORKER_URL}/raceinfo?raceId=${encodeURIComponent(raceId)}`)
+        .then(r => r.json()).then(info => {
+          const name = info.data?.name || info.data?.title || '';
+          setLiveResLink(raceId, eventId, name);
+        }).catch(() => setLiveResLink(raceId, eventId));
+    } catch (e) {
+      if (!silent) card.innerHTML = `<div class="error-msg">${e.message}</div>`;
+    }
+  }
+
+  function renderLiveCard(entries, eventId, raceId) {
+    if (liveInputOpen) return;
+    const card = document.getElementById('liveCard');
+    const timeStr = liveLastFetched
+      ? liveLastFetched.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : '';
+
+    const header = `
+      <div class="live-header">
+        <div class="live-title-block">
+          <span class="live-title">Live resultater</span>
+          ${timeStr ? `<span class="live-updated">Oppdatert ${timeStr}</span>` : ''}
+        </div>
+        <button class="btn-refresh" id="liveRefreshBtn">Oppdater</button>
+      </div>`;
+
+    const bindButtons = () => {
+      document.getElementById('liveRefreshBtn').addEventListener('click', () => loadLiveByRaceId(raceId, eventId));
+    };
+
+    if (!entries.length) {
+      card.innerHTML = `<div class="tracked-card">${header}
+        <p style="color:var(--neutral-600);font-size:0.88rem;padding:8px 0">Ingen av de sporede utøverne er funnet i live-resultatene ennå.</p>
+      </div>`;
+      bindButtons();
+      document.getElementById('liveRaatSection').classList.remove('hidden');
+      document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
+      if (liveRaatVisible) renderLiveRaatCard(eventId);
+      return;
+    }
+
+    const sorted = [...entries].sort((a, b) => {
+      const ap = a.position, bp = b.position;
+      if (ap != null && bp != null) return ap - bp;
+      if (ap != null) return -1;
+      if (bp != null) return 1;
+      const as = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === a.person?.name)?.startTime || '';
+      const bs = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === b.person?.name)?.startTime || '';
+      return as.localeCompare(bs);
+    });
+
+    const rows = sorted.map(e => {
+      const fullName  = e.person?.name || '';
+      const name      = TRACKED_DISPLAY[fullName] || fullName || '–';
+      const startInfo = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === fullName);
+      const cls       = startInfo?.class || '';
+      const startDisp = startInfo ? (fmtTime(startInfo.startTime) || '') : '';
+
+      const status   = e.status?.status || '';
+      const t        = e.time?.time;
+      const finishDisp = e.time?.finishTime
+        ? new Date(e.time.finishTime).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const { rowClass, detailParts } = classifyLiveEntry(status, t, finishDisp, startDisp, e.position);
+
+      const detailHtml = detailParts.filter(Boolean).join('  ·  ');
+
+      return `<div class="live-person ${rowClass}">
+        <div class="live-row1">
+          <span class="live-pname">${name}</span>
+          ${cls ? `<span class="live-pclass">${cls}</span>` : ''}
+        </div>
+        <div class="live-row2">
+          <span class="live-pdetails">${detailHtml}</span>
+        </div>
+      </div>`;
+    }).join('');
+
+    card.innerHTML = `<div class="tracked-card">${header}
+      <div class="live-list">${rows}</div>
+    </div>`;
+
+    bindButtons();
+    document.getElementById('liveRaatSection').classList.remove('hidden');
+    document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
+    if (liveRaatVisible) renderLiveRaatCard(eventId);
+  }
+
+  function renderLiveRaatCard(eventId) {
+    const card = document.getElementById('liveRaatCard');
+    if (cachedStartListEventId !== eventId || !allCompetitors.length) {
+      card.innerHTML = `<div class="tracked-card">
+        <p style="color:var(--neutral-600);font-size:0.88rem;padding:8px 0">
+          Last startlisten i Startliste-fanen for å vise råtassresultater.
+        </p>
+      </div>`;
+      return;
+    }
+    const oppsalRunners = allCompetitors.filter(c =>
+      c.club.toLowerCase().includes('oppsal') &&
+      OPPSAL_CLASSES.has(c.class) &&
+      !TRACKED.includes(c.fullName)
+    );
+    if (!oppsalRunners.length) { card.innerHTML = ''; return; }
+
+    const rows = oppsalRunners.map(runner => {
+      const entry     = liveAllEntries.find(e => e.person?.name === runner.fullName);
+      const startDisp = fmtTime(runner.startTime) || '';
+      const status   = entry?.status?.status || '';
+      const t        = entry?.time?.time;
+      const finishDisp = entry?.time?.finishTime
+        ? new Date(entry.time.finishTime).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
+        : '';
+      const { rowClass, detailParts } = classifyLiveEntry(status, t, finishDisp, startDisp);
+      const detailHtml = detailParts.filter(Boolean).join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
+      return {
+        html: `<div class="live-person ${rowClass} live-blue">
+          <div class="live-row1">
+            <span class="live-pname">${runner.fullName}</span>
+            ${runner.class ? `<span class="live-pclass">${runner.class}</span>` : ''}
+          </div>
+          <div class="live-row2"><span class="live-pdetails">${detailHtml}</span></div>
+        </div>`,
+        pos: entry?.position ?? (rowClass === 'live-done' ? 9998 : 9999),
+        startTime: runner.startTime,
+      };
+    }).sort((a, b) => a.pos !== b.pos ? a.pos - b.pos : a.startTime.localeCompare(b.startTime));
+
+    card.innerHTML = `<div class="tracked-card">
+      <div class="live-header">
+        <div class="live-title-block">
+          <span class="live-title">Råtasser</span>
+          <span style="font-size:0.78rem;color:var(--neutral-500)">${oppsalRunners.length} deltagere</span>
+        </div>
+      </div>
+      <div class="live-list">${rows.map(r => r.html).join('')}</div>
+    </div>`;
+  }
+
+  // ── Event listeners ────────────────────────────────────────────────────────
+  document.getElementById('eventSelect').addEventListener('change', function () {
+    updateHero(this.value);
+    if (this.value) {
+      localStorage.setItem('lastEventId', this.value);
+      showEventPreview(this.value);
+      if (activeTab === 'live') initLiveTab(this.value);
+    }
+  });
+
+
+  document.getElementById('velgLopBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    const panel = document.getElementById('velgLopPanel');
+    document.documentElement.style.setProperty('--header-h', document.querySelector('header').offsetHeight + 'px');
+    if (!panel.classList.contains('open')) populateVelgLopPanel();
+    panel.classList.toggle('open');
+  });
+  document.addEventListener('click', () => {
+    document.getElementById('velgLopPanel').classList.remove('open');
+  });
+  document.getElementById('velgLopPanel').addEventListener('click', e => e.stopPropagation());
+  document.getElementById('tabStartBtn').addEventListener('click', () => switchTab('start'));
+  document.getElementById('tabLiveBtn').addEventListener('click', () => switchTab('live'));
+  document.getElementById('liveRaatBtn').addEventListener('click', () => {
+    liveRaatVisible = !liveRaatVisible;
+    localStorage.setItem('liveRaatVisible', liveRaatVisible);
+    document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
+    if (liveRaatVisible) renderLiveRaatCard(document.getElementById('eventSelect').value);
+    else document.getElementById('liveRaatCard').innerHTML = '';
+  });
+
+  // Apply persisted tab without triggering live load (events not loaded yet)
+  document.getElementById('tab-start').classList.toggle('hidden', activeTab !== 'start');
+  document.getElementById('tab-live').classList.toggle('hidden', activeTab !== 'live');
+  document.getElementById('tabStartBtn').classList.toggle('active', activeTab === 'start');
+  document.getElementById('tabLiveBtn').classList.toggle('active', activeTab === 'live');
+
+  loadEvents();
+</script>
+</body>
+</html>

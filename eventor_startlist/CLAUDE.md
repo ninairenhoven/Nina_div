@@ -58,7 +58,7 @@ There are two independent deployment options for the backend proxy:
 
 - All colors are CSS custom properties defined in `:root` at the top of `index.html`.
 - XML parsing uses namespace-agnostic helpers (`child`, `children`, `walkAll`, `txt`) — never use `querySelector` or `getElementsByTagName` with namespace prefixes on Eventor XML.
-- `TRACKED` (full names) and `TRACKED_DISPLAY` (short display names) must stay in sync with `EVENTOR_TRACKED_IDS` in `.env` / `worker.js`.
+- `TRACKED` (full names) and `TRACKED_DISPLAY` (short display names) must stay in sync with `EVENTOR_TRACKED_IDS` in `.env` / `worker.js`. Adding a person requires updates in **4 places**: `TRACKED` array, `TRACKED_DISPLAY` object, `EVENTOR_TRACKED_IDS` in `.env`, and `TRACKED_IDS` in `cloudflare/worker.js`.
 - `OPPSAL_CLASSES` defines which classes are shown in the "Oppsal råtasser" summary card.
 - Table sort state lives in `tableSort = { col, dir }`. Filter state lives in `tableFilter = { classes: Set, club, name }`.
 - `parseStartList` returns competitors already sorted by class (`compareClasses`) then start time. Cards that display subsets of competitors do not need to re-sort.

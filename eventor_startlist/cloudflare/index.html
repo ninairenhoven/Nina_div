@@ -49,8 +49,9 @@
 
     /* ── Header ──────────────────────────────────────────────────────────── */
     header {
-      background: var(--neutral-200); box-shadow: var(--shadow-header);
-      padding: 0 20px; position: sticky; top: 0; z-index: 100;
+      background: #B8E2DA; box-shadow: var(--shadow-header);
+      padding: 0 12px; position: sticky; top: 0; z-index: 100;
+      border-bottom: 2px solid var(--neutral-200);
     }
     .header-inner {
       max-width: 1000px; margin: 0 auto;
@@ -74,21 +75,21 @@
 
     /* Hero navigation */
     .hero-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
-    .hero-date { font-size: 1rem; font-weight: 800; color: var(--teal); letter-spacing: -.01em; flex-shrink: 0; }
+    .hero-date { font-size: 1rem; font-weight: 800; color: #B8E2DA; letter-spacing: -.01em; flex-shrink: 0; }
 
     #eventor-link-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px; }
     .btn-reload-events {
-      flex: none; padding: 5px 10px; border-radius: 20px; border: 1px solid #e8d97a;
-      background: #fdf7c3; font-family: inherit; font-size: 0.82rem; font-weight: 600;
-      color: #a08c20; cursor: pointer; transition: all .15s; line-height: 1.4;
+      flex: none; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--neutral-300);
+      background: var(--neutral-200); font-family: inherit; font-size: 0.82rem; font-weight: 600;
+      color: var(--neutral-600); cursor: pointer; transition: all .15s; line-height: 1.4;
     }
-    .btn-reload-events:hover:not(:disabled) { border-color: #c9ab10; color: #7a6a10; }
+    .btn-reload-events:hover:not(:disabled) { border-color: var(--teal); color: var(--teal-dark); }
     .btn-reload-events:disabled { opacity: 0.35; cursor: default; }
 
     /* Event picker */
     .hero-event-picker { position: relative; display: inline-block; }
     .btn-velg-lop {
-      background: white; border: 1px solid var(--neutral-300);
+      background: var(--neutral-200); border: 1px solid var(--neutral-300);
       color: var(--neutral-600); font-family: inherit; font-size: 0.82rem; font-weight: 600;
       padding: 5px 14px; border-radius: 20px; cursor: pointer; transition: all .15s;
     }
@@ -135,7 +136,7 @@
     /* ── Tracked summary ─────────────────────────────────────────────────── */
     .tracked-card {
       background: white; border-radius: 14px; box-shadow: var(--shadow);
-      padding: 20px 24px; margin-bottom: 22px;
+      padding: 20px 18px; margin-bottom: 22px;
     }
     .tracked-card summary {
       font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
@@ -311,7 +312,7 @@
     /* ── Tab bar (lives in header) ──────────────────────────────────────────── */
     .tab-btn {
       padding: 14px 12px; border: none; background: none;
-      font-family: inherit; font-size: 0.88rem; font-weight: 600;
+      font-family: inherit; font-size: 0.92rem; font-weight: 800;
       color: var(--neutral-600); cursor: pointer;
       border-bottom: 3px solid transparent; margin-bottom: -2px;
       transition: color .15s, border-color .15s;
@@ -338,7 +339,7 @@
     .btn-refresh:hover { background: var(--blue-header); }
 
     .live-list { display: flex; flex-direction: column; gap: 6px; }
-    .live-person { padding: 12px 16px; border-radius: 12px; }
+    .live-person { padding: 8px 16px; border-radius: 12px; }
     .live-person.live-done    { background: var(--green-light); border: 1px solid var(--green-dark); }
     .live-person.live-running { background: #FCE0DB;             border: 1px solid #e8b8b0; }
     .live-person.live-bad     { background: var(--neutral-300); border: 1px solid #ccc; }
@@ -353,7 +354,7 @@
     .live-pname    { font-size: 1rem;   font-weight: 700; color: var(--dark); }
     .live-pclass   { font-size: 0.78rem; font-weight: 600; color: var(--green-dark); }
     .live-blue .live-pclass { color: var(--blue-text); }
-    .live-pdetails { font-size: 0.82rem; font-weight: 600; color: var(--neutral-600); font-variant-numeric: tabular-nums; }
+    .live-pdetails { font-size: 0.88rem; font-weight: 600; color: var(--neutral-600); font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
@@ -402,8 +403,12 @@
     <div id="liveResLink" class="hidden"></div>
     <div id="liveCard"></div>
     <div id="liveRaatSection" class="hidden" style="margin-top:8px">
-      <button class="btn-show-list" id="liveRaatBtn">Vis råtasser</button>
-      <div id="liveRaatCard"></div>
+      <div class="tracked-card">
+        <details id="liveRaatDetails">
+          <summary id="liveRaatSummary">Råtasser</summary>
+          <div id="liveRaatCard"></div>
+        </details>
+      </div>
     </div>
   </div>
 
@@ -432,6 +437,13 @@
       if (va > vb) return 1;
     }
     return 0;
+  }
+
+  function cmpStartTime(a, b, dir = 1) {
+    if (!a.startTime && !b.startTime) return 0;
+    if (!a.startTime) return 1;
+    if (!b.startTime) return -1;
+    return a.startTime.localeCompare(b.startTime) * dir;
   }
 
   // ── Configuration ──────────────────────────────────────────────────────────
@@ -516,8 +528,7 @@
         date: txt(ev, 'StartDate', 'Date') || txt(ev, 'StartDate') };
     }
 
-    // Fallback: /starts/person response with <StartList><Event> structure
-    // (used when /entries returns 400 for this API key).
+    // Fallback: /starts/person response with <StartList><Event> structure.
     if (!Object.keys(events).length) {
       for (const ev of walkAll(doc, 'Event')) {
         const id = txt(ev, 'EventId');
@@ -563,12 +574,7 @@
       }
     }
     for (const id of Object.keys(result)) {
-      result[id].sort((a, b) => {
-        if (!a.startTime && !b.startTime) return 0;
-        if (!a.startTime) return 1;
-        if (!b.startTime) return -1;
-        return a.startTime.localeCompare(b.startTime);
-      });
+      result[id].sort(cmpStartTime);
     }
     return result;
   }
@@ -607,14 +613,7 @@
       }
     }
 
-    competitors.sort((a, b) => {
-      const classCmp = compareClasses(a.class, b.class);
-      if (classCmp !== 0) return classCmp;
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime);
-    });
+    competitors.sort((a, b) => compareClasses(a.class, b.class) || cmpStartTime(a, b));
     return competitors;
   }
 
@@ -691,8 +690,11 @@
   }
 
   function showEventPreview(eventId) {
-    allCompetitors = [];
-    cachedStartListEventId = null;
+    if (eventId !== cachedStartListEventId) {
+      allCompetitors = [];
+      cachedStartListEventId = null;
+      liveAllEntries = [];
+    }
     document.getElementById('oppsalCard').classList.add('hidden');
     document.getElementById('startList').innerHTML = '';
     renderTrackedForEvent(eventId);
@@ -709,12 +711,7 @@
   function renderOppsalTable() {
     const sorted = [...oppsalCompetitors].sort((a, b) => {
       const { col, dir } = oppsalSort;
-      if (col === 'startTime') {
-        if (!a.startTime && !b.startTime) return 0;
-        if (!a.startTime) return 1;
-        if (!b.startTime) return -1;
-        return a.startTime.localeCompare(b.startTime) * dir;
-      }
+      if (col === 'startTime') return cmpStartTime(a, b, dir);
       const map = { name: 'fullName', class: 'class' };
       return (a[map[col]] || '').localeCompare(b[map[col]] || '') * dir;
     });
@@ -840,12 +837,7 @@
 
   function sortCompare(a, b) {
     const { col, dir } = tableSort;
-    if (col === 'startTime') {
-      if (!a.startTime && !b.startTime) return 0;
-      if (!a.startTime) return 1;
-      if (!b.startTime) return -1;
-      return a.startTime.localeCompare(b.startTime) * dir;
-    }
+    if (col === 'startTime') return cmpStartTime(a, b, dir);
     const map = { name: 'fullName', class: 'class', club: 'club' };
     return (a[map[col]] || '').localeCompare(b[map[col]] || '') * dir;
   }
@@ -908,6 +900,8 @@
   function showTable() {
     document.getElementById('startList').innerHTML = `
       <div class="tracked-card" style="margin-bottom:0; padding: 10px;">
+        <details open>
+        <summary>Komplett startliste</summary>
         <div>
           <div id="statsBar" class="stats-bar"></div>
           <div class="table-filters">
@@ -917,8 +911,8 @@
             </div>
             <select id="filterClub" class="tf-select" style="flex:1 1 calc(50% - 4px); min-width:0; width:auto"><option value="">Alle klubber</option></select>
             <div style="display:flex; gap:8px; flex: 1 1 100%;">
-              <input id="filterName" type="search" class="tf-select" placeholder="Søk navn…" autocomplete="off" style="flex: 0 0 calc(80% - 4px); width:auto; min-width:0">
-              <button id="clearFilters" class="btn-clear" style="flex: 0 0 calc(20% - 4px); margin-left:0">Nullstill</button>
+              <input id="filterName" type="search" class="tf-select" placeholder="Søk navn…" autocomplete="off" style="flex: 1 1 0; min-width:0">
+              <button id="clearFilters" class="btn-clear" style="flex: 0 0 auto; margin-left:0">Nullstill</button>
             </div>
           </div>
           <div class="main-table-wrap">
@@ -934,6 +928,7 @@
           </div>
           <div id="pagination" class="pagination hidden"></div>
         </div>
+        </details>
       </div>`;
 
     buildTableFilters(allCompetitors);
@@ -1091,17 +1086,17 @@
 
       document.getElementById('velgLopBtn').disabled = false;
       const sel = document.getElementById('eventSelect');
-      const savedId = localStorage.getItem('lastEventId');
+      const today = new Date().toISOString().slice(0, 10);
+      const savedId   = localStorage.getItem('lastEventId');
+      const savedDate = localStorage.getItem('lastEventDate');
       const ids = [...sel.options].map(o => o.value);
-      const autoId = (savedId && ids.includes(savedId))
+      const autoId = (savedId && savedDate === today && ids.includes(savedId))
         ? savedId
-        : (() => {
-            const today = new Date().toISOString().slice(0, 10);
-            return (allEvents.find(e => e.date >= today) || allEvents[allEvents.length - 1])?.id;
-          })();
+        : (allEvents.find(e => e.date >= today) || allEvents[allEvents.length - 1])?.id;
       if (autoId) {
         sel.value = autoId;
         localStorage.setItem('lastEventId', autoId);
+        localStorage.setItem('lastEventDate', today);
         updateHero(autoId);
         showEventPreview(autoId);
         if (activeTab === 'live') initLiveTab(autoId);
@@ -1175,14 +1170,13 @@
     if (!linkEl) return;
     const url = `https://liveres.live/followfull.php?time4o&comp=${raceId}&lang=no`;
     const nameHtml = raceName
-      ? `<span style="font-size:0.78rem;font-weight:600;color:var(--dark)">${raceName}</span>`
+      ? `<span style="font-size:0.78rem;font-weight:600;color:var(--neutral-600)">${raceName}</span>`
       : '';
     linkEl.innerHTML = `
-      <div class="tracked-card" style="margin-bottom:22px">
-        <a href="${url}" target="_blank" rel="noopener">↗ ${url.replace('https://', '').slice(0, 41)}…</a>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px">
-          ${nameHtml || '<span></span>'}
-          <button class="btn-clear" id="liveClearBtn" style="font-size:0.72rem;padding:4px 10px;flex-shrink:0;margin-left:auto">Bytt lenke</button>
+      <div class="tracked-card" style="margin-bottom:22px;padding-top:10px;padding-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <a href="${url}" target="_blank" rel="noopener" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">↗ ${url.replace('https://', '')}</a>
+          <button class="btn-clear" id="liveClearBtn" style="font-size:0.72rem;padding:4px 10px;flex-shrink:0">Bytt</button>
         </div>
       </div>`;
     linkEl.classList.remove('hidden');
@@ -1194,6 +1188,7 @@
 
   async function initLiveTab(eventId) {
     liveAllEntries = [];
+    liveInputOpen = false;
     document.getElementById('liveRaatSection').classList.add('hidden');
     document.getElementById('liveRaatCard').innerHTML = '';
     // Fast path: localStorage cache
@@ -1236,6 +1231,7 @@
 
   function showLiveUrlInput(eventId, existingRaceId = null) {
     liveInputOpen = true;
+    document.getElementById('liveRaatSection').classList.add('hidden');
     const card = document.getElementById('liveCard');
     const existingUrl = existingRaceId
       ? `https://liveres.live/followfull.php?time4o&comp=${existingRaceId}&lang=no`
@@ -1248,15 +1244,31 @@
         <input id="liveUrlInput" type="text" class="tf-select" autocomplete="off"
           value="${existingUrl.replace(/"/g, '&quot;')}"
           style="width:100%;margin-bottom:10px">
+        <div id="liveVerifyResult" style="font-size:0.88rem;font-weight:600;margin-bottom:10px;min-height:1.3em"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button type="button" class="btn-clear" id="liveUrlClear"
             style="font-size:0.78rem;padding:6px 12px;margin-left:0">Clear</button>
           ${existingRaceId ? '<button type="button" class="btn-clear" id="liveUrlCancel" style="font-size:0.78rem;padding:6px 12px;margin-left:0">Cancel</button>' : ''}
-          <button type="button" class="btn-refresh" id="liveUrlSubmit">Get</button>
+          <button type="button" class="btn-refresh" id="liveUrlVerify">Verify</button>
+          <button type="button" class="btn-refresh" id="liveUrlSubmit" disabled style="opacity:0.35;cursor:default">Get</button>
         </div>
       </div>`;
-    const submit = () => {
+
+    let verifiedRaceId = null;
+
+    const disableGet = () => {
+      verifiedRaceId = null;
+      const btn = document.getElementById('liveUrlSubmit');
+      btn.disabled = true; btn.style.opacity = '0.35'; btn.style.cursor = 'default';
+    };
+    const resetVerify = () => {
+      disableGet();
+      document.getElementById('liveVerifyResult').textContent = '';
+    };
+
+    const verify = async () => {
       const val = document.getElementById('liveUrlInput').value.trim();
+      const resultEl = document.getElementById('liveVerifyResult');
       if (!val) {
         liveInputOpen = false;
         localStorage.removeItem(`liveRaceId:${eventId}`);
@@ -1266,21 +1278,56 @@
         return;
       }
       const m = val.match(/comp=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
-      if (!m) { document.getElementById('liveUrlInput').style.borderColor = 'var(--error-border)'; return; }
-      liveInputOpen = false;
-      loadLiveByRaceId(m[1], eventId);
+      if (!m) {
+        document.getElementById('liveUrlInput').style.borderColor = 'var(--error-border)';
+        resultEl.style.color = '#c0392b'; resultEl.textContent = 'Ugyldig lenke';
+        disableGet(); return;
+      }
+      document.getElementById('liveUrlInput').style.borderColor = '';
+      resultEl.style.color = 'var(--neutral-600)'; resultEl.textContent = 'Henter løpsnavn…';
+      try {
+        const resp = await fetch(`${WORKER_URL}/raceinfo?raceId=${encodeURIComponent(m[1])}`);
+        const data = await resp.json().catch(() => ({}));
+        const name = data?.data?.name || data?.data?.title || data?.name || data?.title || '';
+        if (name) {
+          const eventName = allEvents.find(e => e.id === eventId)?.name || '';
+          const normalize = s => s.toLowerCase().replace(/[^a-zæøåéèà0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+          const matches = normalize(name) === normalize(eventName);
+          if (matches) {
+            resultEl.style.color = 'var(--dark)';
+            resultEl.textContent = name;
+          } else {
+            resultEl.innerHTML = `${name} <span style="color:#e67e22;font-weight:700">⚠ Løpsnavnet matcher ikke valgt løp</span>`;
+          }
+          verifiedRaceId = m[1];
+          const btn = document.getElementById('liveUrlSubmit');
+          btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = '';
+        } else {
+          resultEl.style.color = '#c0392b'; resultEl.textContent = 'Løp ikke funnet';
+          disableGet();
+        }
+      } catch { resultEl.style.color = '#c0392b'; resultEl.textContent = 'Feil ved henting'; disableGet(); }
     };
+
+    const submit = () => {
+      if (!verifiedRaceId) return;
+      liveInputOpen = false;
+      loadLiveByRaceId(verifiedRaceId, eventId);
+    };
+
+    document.getElementById('liveUrlInput').addEventListener('input', resetVerify);
     document.getElementById('liveUrlClear').addEventListener('click', () => {
       const input = document.getElementById('liveUrlInput');
-      input.value = '';
-      input.style.borderColor = '';
-      input.focus();
+      input.value = ''; input.style.borderColor = '';
+      resetVerify(); input.focus();
     });
+    document.getElementById('liveUrlVerify').addEventListener('click', verify);
     document.getElementById('liveUrlSubmit').addEventListener('click', submit);
-    document.getElementById('liveUrlInput').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+    document.getElementById('liveUrlInput').addEventListener('keydown', e => { if (e.key === 'Enter') verify(); });
     if (existingRaceId) {
       document.getElementById('liveUrlCancel').addEventListener('click', () => {
         liveInputOpen = false;
+        document.getElementById('liveRaatSection').classList.remove('hidden');
         setLiveResLink(existingRaceId, eventId);
         loadLiveByRaceId(existingRaceId, eventId);
       });
@@ -1289,11 +1336,12 @@
 
   async function loadLiveByRaceId(raceId, eventId, silent = false) {
     const card = document.getElementById('liveCard');
-    if (!silent) card.innerHTML = '<div class="loading-msg">Laster live resultater…</div>';
+    if (!silent) card.innerHTML = '<div class="loading-msg">Laster resultater…</div>';
     try {
       const resp = await fetch(`${WORKER_URL}/liveresults?raceId=${encodeURIComponent(raceId)}`);
       if (document.getElementById('eventSelect').value !== eventId) return;
       const json = await resp.json().catch(() => ({}));
+      if (document.getElementById('eventSelect').value !== eventId) return;
       if (!resp.ok) {
         if (!silent) card.innerHTML = `<div class="error-msg">${json.error || `HTTP ${resp.status}`}</div>`;
         return;
@@ -1301,9 +1349,10 @@
       localStorage.setItem(`liveRaceId:${eventId}`, raceId);
       fetch(`${WORKER_URL}/livelink?eventId=${eventId}&raceId=${encodeURIComponent(raceId)}`, { method: 'POST' }).catch(() => {});
       liveLastFetched = new Date();
-      liveAllEntries = json.data || [];
+      liveAllEntries = Array.isArray(json.data) ? json.data : [];
       const entries = liveAllEntries.filter(e => TRACKED.includes(e.person?.name));
       renderLiveCard(entries, eventId, raceId);
+      if (document.getElementById('liveRaatDetails')?.open) renderLiveRaatCard(eventId);
       fetch(`${WORKER_URL}/raceinfo?raceId=${encodeURIComponent(raceId)}`)
         .then(r => r.json()).then(info => {
           const name = info.data?.name || info.data?.title || '';
@@ -1340,25 +1389,25 @@
       </div>`;
       bindButtons();
       document.getElementById('liveRaatSection').classList.remove('hidden');
-      document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
+      document.getElementById('liveRaatDetails').open = liveRaatVisible;
       if (liveRaatVisible) renderLiveRaatCard(eventId);
       return;
     }
 
+    const trackedStarts = trackedStartsByEvent[eventId] || [];
     const sorted = [...entries].sort((a, b) => {
-      const ap = a.position, bp = b.position;
-      if (ap != null && bp != null) return ap - bp;
-      if (ap != null) return -1;
-      if (bp != null) return 1;
-      const as = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === a.person?.name)?.startTime || '';
-      const bs = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === b.person?.name)?.startTime || '';
+      const aDns = a.status?.status === 'DidNotStart';
+      const bDns = b.status?.status === 'DidNotStart';
+      if (aDns !== bDns) return aDns ? 1 : -1;
+      const as = trackedStarts.find(s => s.fullName === a.person?.name)?.startTime || '';
+      const bs = trackedStarts.find(s => s.fullName === b.person?.name)?.startTime || '';
       return as.localeCompare(bs);
     });
 
     const rows = sorted.map(e => {
       const fullName  = e.person?.name || '';
       const name      = TRACKED_DISPLAY[fullName] || fullName || '–';
-      const startInfo = (trackedStartsByEvent[eventId] || []).find(s => s.fullName === fullName);
+      const startInfo = trackedStarts.find(s => s.fullName === fullName);
       const cls       = startInfo?.class || '';
       const startDisp = startInfo ? (fmtTime(startInfo.startTime) || '') : '';
 
@@ -1388,24 +1437,30 @@
 
     bindButtons();
     document.getElementById('liveRaatSection').classList.remove('hidden');
-    document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
+    document.getElementById('liveRaatDetails').open = liveRaatVisible;
     if (liveRaatVisible) renderLiveRaatCard(eventId);
   }
 
-  function renderLiveRaatCard(eventId) {
+  async function renderLiveRaatCard(eventId) {
+    if (liveInputOpen) return;
+    if (document.getElementById('eventSelect').value !== eventId) return;
     const card = document.getElementById('liveRaatCard');
     if (cachedStartListEventId !== eventId || !allCompetitors.length) {
-      card.innerHTML = `<div class="tracked-card">
-        <p style="color:var(--neutral-600);font-size:0.88rem;padding:8px 0">
-          Last startlisten i Startliste-fanen for å vise råtassresultater.
-        </p>
-      </div>`;
-      return;
+      card.innerHTML = `<p style="color:var(--neutral-600);font-size:0.88rem;padding:8px 0">Laster startliste…</p>`;
+      try {
+        const resp = await fetch(`${WORKER_URL}/startlist?eventId=${eventId}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        allCompetitors = parseStartList(parseXml(await resp.text()));
+        cachedStartListEventId = eventId;
+        if (document.getElementById('eventSelect').value !== eventId) return;
+      } catch (e) {
+        card.innerHTML = `<p style="color:var(--neutral-600);font-size:0.88rem;padding:8px 0">Kunne ikke laste startliste.</p>`;
+        return;
+      }
     }
     const oppsalRunners = allCompetitors.filter(c =>
       c.club.toLowerCase().includes('oppsal') &&
-      OPPSAL_CLASSES.has(c.class) &&
-      !TRACKED.includes(c.fullName)
+      OPPSAL_CLASSES.has(c.class)
     );
     if (!oppsalRunners.length) { card.innerHTML = ''; return; }
 
@@ -1429,18 +1484,15 @@
         </div>`,
         pos: entry?.position ?? (rowClass === 'live-done' ? 9998 : 9999),
         startTime: runner.startTime,
+        dns: status === 'DidNotStart',
       };
-    }).sort((a, b) => a.pos !== b.pos ? a.pos - b.pos : a.startTime.localeCompare(b.startTime));
+    }).sort((a, b) => {
+      if (a.dns !== b.dns) return a.dns ? 1 : -1;
+      return (a.startTime || '').localeCompare(b.startTime || '');
+    });
 
-    card.innerHTML = `<div class="tracked-card">
-      <div class="live-header">
-        <div class="live-title-block">
-          <span class="live-title">Råtasser</span>
-          <span style="font-size:0.78rem;color:var(--neutral-500)">${oppsalRunners.length} deltagere</span>
-        </div>
-      </div>
-      <div class="live-list">${rows.map(r => r.html).join('')}</div>
-    </div>`;
+    document.getElementById('liveRaatSummary').textContent = `Råtasser: ${oppsalRunners.length} deltagere`;
+    card.innerHTML = `<div class="live-list">${rows.map(r => r.html).join('')}</div>`;
   }
 
   // ── Event listeners ────────────────────────────────────────────────────────
@@ -1448,6 +1500,7 @@
     updateHero(this.value);
     if (this.value) {
       localStorage.setItem('lastEventId', this.value);
+      localStorage.setItem('lastEventDate', new Date().toISOString().slice(0, 10));
       showEventPreview(this.value);
       if (activeTab === 'live') initLiveTab(this.value);
     }
@@ -1467,12 +1520,10 @@
   document.getElementById('velgLopPanel').addEventListener('click', e => e.stopPropagation());
   document.getElementById('tabStartBtn').addEventListener('click', () => switchTab('start'));
   document.getElementById('tabLiveBtn').addEventListener('click', () => switchTab('live'));
-  document.getElementById('liveRaatBtn').addEventListener('click', () => {
-    liveRaatVisible = !liveRaatVisible;
-    localStorage.setItem('liveRaatVisible', liveRaatVisible);
-    document.getElementById('liveRaatBtn').textContent = liveRaatVisible ? 'Skjul råtasser' : 'Vis råtasser';
-    if (liveRaatVisible) renderLiveRaatCard(document.getElementById('eventSelect').value);
-    else document.getElementById('liveRaatCard').innerHTML = '';
+  document.getElementById('liveRaatDetails').addEventListener('toggle', function () {
+    liveRaatVisible = this.open;
+    localStorage.setItem('liveRaatVisible', this.open);
+    if (this.open) renderLiveRaatCard(document.getElementById('eventSelect').value);
   });
 
   // Apply persisted tab without triggering live load (events not loaded yet)

@@ -46,27 +46,33 @@ def _db():
 def _cache_get(key):
     today = date.today().isoformat()
     now   = time.time()
-    with _db() as con:
-        row = con.execute(
-            'SELECT value, cached_date, expires_at FROM cache WHERE key = ?', (key,)
-        ).fetchone()
-    if row and row[1] == today and row[2] > now:
-        return row[0]
+    try:
+        with _db() as con:
+            row = con.execute(
+                'SELECT value, cached_date, expires_at FROM cache WHERE key = ?', (key,)
+            ).fetchone()
+        if row and row[1] == today and row[2] > now:
+            return row[0]
+    except Exception as e:
+        app.logger.warning('cache_get failed for %s: %s', key, e)
     return None
 
 
 def _cache_set(key, value, ttl=CACHE_TTL):
     today = date.today().isoformat()
     now   = time.time()
-    with _db() as con:
-        con.execute('''
-            INSERT INTO cache (key, value, cached_date, expires_at)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(key) DO UPDATE SET
-                value      = excluded.value,
-                cached_date = excluded.cached_date,
-                expires_at  = excluded.expires_at
-        ''', (key, value, today, now + ttl))
+    try:
+        with _db() as con:
+            con.execute('''
+                INSERT INTO cache (key, value, cached_date, expires_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET
+                    value      = excluded.value,
+                    cached_date = excluded.cached_date,
+                    expires_at  = excluded.expires_at
+            ''', (key, value, today, now + ttl))
+    except Exception as e:
+        app.logger.warning('cache_set failed for %s: %s', key, e)
 
 
 # ── Eventor helpers ─────────────────────────────────────────────────────────────
@@ -119,10 +125,6 @@ def index():
 
 @app.route('/my-events')
 def my_events():
-    resp = eventor_get(f'/entries?personIds={TRACKED_IDS}&includePersonElement=true')
-    if resp.ok:
-        return Response(resp.text, status=resp.status_code, mimetype='application/xml')
-
     return Response(_get_events_xml(), status=200, mimetype='application/xml')
 
 

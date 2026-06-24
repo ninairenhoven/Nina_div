@@ -23,11 +23,13 @@ filer_internkontroll_LM = [f.name for f in filer_internkontroll_LM]
 
 filenames = {
     'antall_plasser':'Antall plasser på institusjon.xlsx',
+    'antall_beboere':'Antall beboere siste dag i måneden 2024 2025.csv',
     "ernaring": "Ernæringsmessig risiko og ernæringsplan 2024 2025.csv",
     "vaksinerte": "Andel vaksinerte medarbeidere.xlsx",
     "infeksjoner": "Infeksjoner.xlsx",
     "LMG": "Andel gjennomførte legemiddelgjennomganger 2024 2025.csv",
     "legemidler_8": "Andel pasienter med 8 eller flere legemidler over tid.xlsx",
+    "legemidler_10": "Andel pasienter med 10 eller flere legemidler over tid.xlsx",
     "antibiotika": "Gunstig antibiotika.xlsx",
     "ADL": "IPLOS-1.kvartal-2025.xlsx",
     "responstid": "responstid.xlsx",
@@ -38,12 +40,6 @@ filenames = {
 }
 
 files = {k:path.joinpath(v) for k, v in filenames.items()}
-
-
-
-
-
-
 
 
 
@@ -74,6 +70,24 @@ def keep_text_in_brackets(cols):
         return cleaned_cols
 
 
+def month2quarters(input_months, n_quarters):
+    # Genererer kvartaler for inneværende måned, og et antall kvartaler frem i tid
+    x = pd.Series(input_months).to_frame('months')
+    x[0] = input_months.astype('period[Q]')
+    for i in range(1, n_quarters):
+        x[i] = x[0] + i
+    x = x.set_index('months')
+    # Check for duplicate quarters
+    dupl = x.stack().duplicated(keep=False)
+    if dupl.any():
+        print('WARNING: overlappende kvartaler')
+        print(x.stack().loc[dupl])
+    # convert to list
+    x = x.apply(list)
+    return(x)
+
+
+
 def indicator_report(df):
     if isinstance(df.columns, pd.PeriodIndex):
         deltas = df.columns.to_timestamp().diff()
@@ -87,7 +101,7 @@ def indicator_report(df):
         frekvens = ''
         frekvens_min = ''
         frekvens_maks = ''
-    stats = df.astype('float').stack().describe(percentiles=[0.05,0.95]).round(3)
+    stats = df.astype('float').stack().describe(percentiles=[0.05,0.95]).round(4)
     return {
         'Frekvens': frekvens,
         'Frekvens min': frekvens_min,
@@ -111,6 +125,7 @@ mnd_nr = {'Januar': 1, 'Februar': 2, 'Mars': 3, 'April': 4,
     'September': 9, 'Oktober': 10, 'November': 11, 'Desember': 12}
 
 raw_data = {}
+all_data = {}
 data = {}
 qdata = {}
 
@@ -135,9 +150,22 @@ df = df.set_index('Institusjon')
 df = df.loc[~df.index.isna()]
 df = df.drop('Total')
 
+all_data['antall_plasser'] = df.copy()
 data['antall_plasser'] = df.copy()
+qdata['antall_plasser'] = df.copy()
+
 antall_plasser = df['Antall døgnplasser'].copy()
 institusjoner = antall_plasser.index
+
+# ===========================================================
+# Antall beboere på institusjon per måned
+# ===========================================================
+
+antall_beboere = pd.read_csv(files['antall_beboere'], sep=';')
+antall_beboere = antall_beboere.rename(columns=rename1)
+antall_beboere['month'] = date_string_to_period(antall_beboere['Periode'])
+antall_beboere = antall_beboere.set_index(['Institusjon','month'])['Sum på Nevner_Belegg_UnikeBrukere'].unstack()
+
 
 # ===========================================================
 # ERNÆRING
@@ -145,6 +173,8 @@ institusjoner = antall_plasser.index
 # ===========================================================
 df = pd.read_csv(files['ernaring'], sep=";")
 df = df.rename(columns = rename1)
+df['Institusjon'].isin(institusjoner)
+
 
 df['month'] = date_string_to_period(df['Periode'])
 df['quarter']= date_string_to_period(df['Periode'], freq='Q')
@@ -160,6 +190,7 @@ ernplan = df.set_index(['Institusjon','month'])['ERNPLAN'].unstack()
 ernris_q = df.groupby(['Institusjon','quarter'])['ERNRIS'].mean().unstack()
 ernplan_q = df.groupby(['Institusjon','quarter'])['ERNPLAN'].mean().unstack()
 
+all_data['ernering'] = df.copy()
 
 data['ERNRIS'] = ernris
 data['ERNPLAN'] = ernplan
@@ -199,12 +230,17 @@ for s, qs in season2quarters.items():
 dfq.columns =  pd.PeriodIndex(dfq.columns, freq='Q')
 dfq = dfq.loc[:,dfq.columns>='2024']
 
+
+all_data['vaksinerte'] = df.copy()
 data['vaksinerte'] = df.copy()
 qdata['vaksinerte'] = dfq.copy()
 
 
 # ===========================================================
+# INFEKSJONER
+#
 # Andel helsetjenesteassosierte infeksjoner
+# Har/har ikke rapportert
 # ===========================================================
 df = pd.read_excel(files['infeksjoner'], index_col=[0,1])
 df = df.dropna(how='all')
@@ -216,17 +252,29 @@ df  = df.rename(columns=rename1)
 df = df.loc[df['År - halvår']!='Total']
 df = df.loc[df['Institusjon']!='Total']
 
-y = df['År - halvår'].str.extract(r'^(\d{4})-')[0].astype(float)
-half = df['År - halvår'].str.extract(r'-(\d)\. halvår')[0].astype(float)
+yh = df['År - halvår'].str.extract(r'^(\d{4})-(\d)\. halvår').astype(float)
 # Sluttmåned: 1 -> jun, 2 -> des
-mnth = half * 6
+mnth = yh[1] * 6
 
-df['period'] = pd.to_datetime({'year': y, 'month': mnth, 'day': 1}).dt.to_period('M')
-df = df.set_index(['Institusjon','period']).sort_index()
+#y = df['År - halvår'].str.extract(r'^(\d{4})-')[0].astype(float)
+#half = df['År - halvår'].str.extract(r'-(\d)\. halvår')[0].astype(float)
 
-df = df['Prevalens av infeksjoner'].unstack(level='period')
-data['infeksjoner'] = df.copy()
+df['month'] = pd.to_datetime({'year': yh[0], 'month': mnth, 'day': 1}).dt.to_period('M')
+df = df.set_index(['month','Institusjon'])
 
+df1 = df['Prevalens av infeksjoner'].unstack(level='month').notna().astype(int)
+
+quarters = month2quarters(df1.columns)
+
+dfq = pd.DataFrame(index=df1.index)
+for col, qs in quarters.iterrows():
+    for q in qs:
+        dfq[q] = (df1[col])
+
+dfq = dfq.loc[:,dfq.columns>='2024']
+
+all_data['infeksjoner'] = df.copy
+data['infeksjoner'] = df1.copy()
 
 # Prevalens av infeksjoner er riktig kolonne.
 # Hvordan mappe til kvartal? Rapporteres på slutten av halvår?
@@ -244,20 +292,26 @@ df['LMG'] = pct_str_to_float(df['F_Legemiddelgjennomgang'])
 dfq = df.groupby(['Institusjon','quarter'])['LMG'].mean().unstack()
 dfm = df.set_index(['Institusjon','month'])['LMG'].unstack()
 
+all_data['LMG'] = df.copy()
 data['LMG'] = dfm.copy()
 qdata['LMG'] = dfq.copy()
 
+
 # ===========================================================
-# Andel pasienter med minst 8 faste medikamenter
+# Andel pasienter med minst 10 faste medikamenter
 # ===========================================================
 
-df = pd.read_excel(files['legemidler_8'])
-df.columns = keep_text_in_brackets(df.columns)
-df = df.rename(columns=rename1)
-df = df.rename(columns={'F_AndelPasienterMedMerEnn8Faste':'Andel'})
 
-df['month'] = date_string_to_period(df['DateID'], format='%Y%m%d')
-df['quarter'] = date_string_to_period(df['DateID'], format='%Y%m%d', freq='Q')
+df = pd.read_excel(files['legemidler_10'])
+#df.columns = keep_text_in_brackets(df.columns)
+#df = df.rename(columns=rename1)
+#df = df.rename(columns={'F_AndelPasienterMedMerEnn8Faste':'Andel'})
+df = df.rename(columns={'F_AndelPasienterMed10EllerMerFaste':'Andel'})
+df = df.dropna(subset=['Dato','Institusjon'])
+#df = df.loc[df['Dato']!='Total']
+
+df['month'] = date_string_to_period(df['Dato'], format='%Y%m%d')
+df['quarter'] = date_string_to_period(df['Dato'], format='%Y%m%d', freq='Q')
 
 mask = df['month']>='2024'
 df = df.loc[mask]
@@ -265,8 +319,9 @@ df = df.loc[mask]
 dfq = df.groupby(['Institusjon','quarter'])['Andel'].mean().unstack()
 dfm = df.set_index(['Institusjon','month'])['Andel'].unstack()
 
-data['legemidler_8'] = dfm.copy()
-qdata['legemidler_8'] = dfq.copy()
+all_data['legemidler_10'] = df.copy()
+data['legemidler_10'] = dfm.copy()
+qdata['legemidler_10'] = dfq.copy()
 
 
 # ===========================================================
@@ -276,57 +331,63 @@ qdata['legemidler_8'] = dfq.copy()
 filer_IKLM = list(path.glob("Legemiddelinternkontroll*.xlsx"))
 filer_IKLM = [path.joinpath(f) for f in filer_IKLM]
 
-s = pd.Series([str(p) for p in filer_IKLM])
+filer_s = pd.Series([str(p) for p in filer_IKLM])
+
+filer_df = pd.DataFrame({
+    'filename': [p.name for p in filer_IKLM],
+    'path':filer_IKLM
+    })
 
 # Regex som fanger to datoer dd.mm.yyyy med " til " imellom
 pattern = r'\d{2}\.(\d{2}\.\d{4})\s+til\s+\d{2}\.(\d{2}\.\d{4})'
 
-# Ekstraher til to kolonner: 'fra' og 'til'
-datoer = s.str.extract(pattern)
-datoer.columns = ['fra', 'til']
-#perioder = datoer.apply(lambda r: '-'.join(r),axis=1)
-perioder = date_string_to_period(datoer['til'], format='%m.%Y')
+dato_filer = filer_df['filename'].str.extract(pattern)
+filer_df = pd.concat([filer_df,dato_filer], axis=1)
+filer_df['tildato'] = date_string_to_period(filer_df[1], format='%m.%Y')
+filer_df = filer_df.sort_values(by='tildato')
+
+readfiles = filer_df.set_index('tildato')['path'].squeeze().to_dict()
 
 df= pd.DataFrame()
 
-for fil, periode in zip(filer_IKLM, perioder):
-    temp = pd.read_excel(fil, index_col=[0], header=1)
+for date, path in readfiles.items():
+    temp = pd.read_excel(path, index_col=[0], header=1)
     temp = temp.dropna(how='all', axis=1)
-    temp.columns = [periode]
+    temp.columns = [date]
     df = pd.concat([df,temp], axis=1)#, axis=1)
 
 df = df.sort_index(axis=1)
 
-slaa_sammen = [
-    'Bjølsenhjemmet',
-    'Ellingsrudhjemmet',
-    'Langerudhjemmet',
-    'Lillohjemmet',
-    'Madserudhjemmet',
-    'Majorstuhjemmet',
-    'Midtåsenhjemmet',
-    'Nordseterhjemmet',
-    'Oppsalhjemmet',
-    'Stovnerskoghjemmet',
-    'Ullernhjemmet',
-    'Uranienborghjemmet',
-    'Vinderenhjemmet',
-    'Økernhjemmet',
-    'Furuset Hageby',
-    'Ilahjemmet',
-    'Kantarellenhjemmet',
-    'Lambertseterhjemmet'
-    ]
-
 df['Institusjon'] = ""
-for inst in slaa_sammen:
+for inst in institusjoner:
     mask =  df.index.str.contains(inst)
     df.loc[mask,'Institusjon'] = inst
-    
 
-df2 = df.groupby('Institusjon').sum(numeric_only=True)
 
-data['IKLM'] = df2.copy()
+df1 = df.groupby('Institusjon').sum(numeric_only=True)
+
+# IK rapportert i mai 2024 gjelder for indeksberegning i Q2+Q3 2024
+quarters = pd.DataFrame(index=filer_df['tildato'])
+quarters['1st'] = quarters.index.astype('period[Q]')
+quarters['2nd'] = quarters['1st'] + 1
+
+
+quarters = month2quarters(filer_df['tildato'],2)
+
+# Har/har ikke gjennomført IK ved forrige rapportering
+dfq = pd.DataFrame(index=df1.index)
+for col, qs in quarters.iterrows():
+    for q in qs:
+        dfq[q] = (df1[col]>0).astype(int)
+
+dfq = dfq.loc[:,dfq.columns>='2024']
+
+all_data['IKLM'] = df.copy()
+data['IKLM'] = df1.copy()
+qdata['IKLM'] = dfq.copy()
+
+
+
 
 # ===========================================================
 # Gunstig antibiotika
@@ -345,6 +406,7 @@ df = df.loc[mask]
 dfq = df.groupby(['Institusjon','quarter'])['F_AndelAvBrukereMedGunstig'].mean().unstack()
 dfm = df.set_index(['Institusjon','month'])['F_AndelAvBrukereMedGunstig'].unstack()
 
+all_data['antibiotika']= df.copy()
 data['antibiotika'] = dfm.copy()
 qdata['antibiotika'] = dfq.copy()
 
@@ -370,6 +432,7 @@ df['quarter'] = date_string_to_period(df['Periode'],freq='Q')
 dfq = df.groupby(['Institusjon','quarter'])['Andel_10min'].mean().unstack()
 dfm = df.set_index(['Institusjon','month'])['Andel_10min'].unstack()
 
+all_data['responstid'] = df.copy()
 data['responstid'] = dfm.copy()
 qdata['responstid'] = dfq.copy()
 
@@ -385,19 +448,28 @@ qdata['responstid'] = dfq.copy()
 # UØNSKEDE HENDELSER
 df = pd.read_excel(files['UH'])
 df = df.dropna(subset=['Institusjon','Year_Month'])
+df = df.loc[df['Institusjon']!='Sykehjemsetaten administrasjon']
+df = df.loc[~df['Institusjon'].str.lower().str.contains('helsehus')]
 
 df['antall_plasser'] = df['Institusjon'].map(antall_plasser)
 df['UHPP'] = df['Antall uønskede hendelser']/df['antall_plasser']
 
-y = df['Year_Month'].str.split('-').str[0]
-mnth = df['Year_Month'].str.split('-').str[1].map(mnd_nr)
-yyyymm = y + mnth.astype(str).str.zfill(2)
+ym = df['Year_Month'].str.split('-',expand=True)
+yyyymm = ym[0] + ym[1].map(mnd_nr).astype(str).str.zfill(2)
 df['month'] = date_string_to_period(yyyymm)
 df['quarter'] = date_string_to_period(yyyymm, freq='Q')
 
-dfq = df.groupby(['Institusjon','quarter'])['UHPP'].mean().unstack()
-dfm = df.set_index(['Institusjon','month'])['UHPP'].unstack()
+# Antall UH per hhv kvartal og måned
+antall_uh_q = df.groupby(['Institusjon','quarter'])['Antall uønskede hendelser'].sum().unstack().fillna(0)
+antall_uh_m = df.set_index(['Institusjon','month'])['Antall uønskede hendelser'].unstack().fillna(0)
 
+temp_plasser = antall_plasser[antall_plasser.index.isin(df['Institusjon'])]
+
+# Antall UH per plass per måned, beregnet for hhv kvartal og måned
+dfq = (1/3)*antall_uh_q.div(temp_plasser, axis=0)
+dfm = antall_uh_m.div(temp_plasser, axis=0)
+
+all_data['UHPP'] = df.copy()
 data['UHPP'] = dfm.copy()
 qdata['UHPP'] = dfq.copy()
 
@@ -424,18 +496,24 @@ df = pd.concat([forb,raabra], axis=1).sort_index().reset_index()
 mask = df['month']>='2024'
 df = df.loc[mask]
 df = df.loc[df['Institusjon']!='Sykehjemsetaten administrasjon']
+df = df.loc[~df['Institusjon'].str.lower().str.contains('helsehus')]
 
 df['total'] = df[['Forbedring','Råbra']].sum(axis=1)
-df['antall_plasser'] = df['Institusjon'].map(antall_plasser)
-df['EQS_PP'] = df['total']/df['antall_plasser']
-
 df['quarter'] = df['month'].astype('period[Q]')
 
-dfq = df.groupby(['Institusjon','quarter'])['EQS_PP'].mean().unstack()
-dfm = df.set_index(['Institusjon','month'])['EQS_PP'].unstack()
+# Antall per hhv kvartal og mnd
+antall_q = df.groupby(['Institusjon','quarter'])['total'].sum().unstack().fillna(0)
+antall_m = df.set_index(['Institusjon','month'])['total'].unstack().fillna(0)
 
-data['EQS'] = dfq.copy()
-qdata['EQS'] = dfm.copy()
+temp_plasser = antall_plasser[antall_plasser.index.isin(df['Institusjon'])]
+
+# Antall per plass per måned, beregnet for hhv kvartal og måned
+dfq = (1/3)*antall_q.div(temp_plasser, axis=0)
+dfm = antall_m.div(temp_plasser, axis=0)
+
+all_data['EQS'] = df.sort_values(['Institusjon','month'])
+data['EQS'] = dfm.copy()
+qdata['EQS'] = dfq.copy()
 
 
 
@@ -459,10 +537,13 @@ yq = df['Year_Quarter'].str.extract(r"(\d{4})-(\d)\. kvartal")
 yq = yq.astype(int)
 df['quarter'] = pd.PeriodIndex.from_fields(year=yq[0], quarter=yq[1], freq="Q")
 
+df = df.loc[df['quarter']>='2024']
+
 dfq = df.set_index(['Institusjon','quarter'])['F_TilbudOppstartsamtale_Gjennomsnitt']
 dfq = dfq.unstack()
 
-data['oppstartsamtale'] = dfq.copy()
+all_data['oppstartssamtale'] = df.copy()
+data['oppstartsamtale'] = df.copy()
 qdata['oppstartsamtale'] = dfq.copy()
 
 
@@ -471,6 +552,8 @@ qdata['oppstartsamtale'] = dfq.copy()
 # ADL
 # IPLOS-1.kvartal-2025.xlsx
 # ===========================================================
+
+
 df = pd.read_excel(files['ADL'], header=3, index_col=0, usecols='A:Q')
 h0 = pd.read_excel(files['ADL'], header=1, index_col=0, usecols='A:Q', nrows=2)
 
@@ -495,23 +578,9 @@ df1 = df1.dropna(how='all')
 
 data['ADL'] = df1.copy()
 
-# ========================================================
-"""
-data24 = {}
-
-for key, df in data.items():
-    if key not in ["antall_plasser",'summaries']:
-        keepcols = df.columns>='2024'
-        df_keep = df.loc[:,keepcols].copy()
-        df_keep = df_keep.dropna(how='all')
-        data24[key] = df_keep
-"""
-
-
 
 # ========================================================
-#counts = pd.DataFrame()
-#f#irst = pd.DataFrame()
+
 inst_summaries = pd.DataFrame(index=antall_plasser.index)
 
 for key, df in qdata.items():

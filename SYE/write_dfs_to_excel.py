@@ -16,6 +16,7 @@ def write_dfs_to_excel(dfs: dict, filepath: str, engine: str = "xlsxwriter", aut
     auto_width : bool
         Hvis True, juster kolonnebredde basert på innhold
     """
+    print(filepath)
     # Sørg for at mappe finnes
     os.makedirs(os.path.dirname(filepath) or ".", exist_ok=True)
     #
@@ -40,13 +41,3 @@ def write_dfs_to_excel(dfs: dict, filepath: str, engine: str = "xlsxwriter", aut
     #
     print(f"Skrev {len(dfs)} ark til: {filepath}")
 
-
-# Eksempelbruk
-if __name__ == "__main__":
-    df1 = pd.DataFrame({"A": [1, 2], "B": ["foo", "bar"]})
-    df2 = pd.DataFrame({"X": [10, 20, 30], "Y": [0.1, 0.2, 0.3]})
-    dataframes = {
-        "Oversikt": df1,
-        "Detaljer": df2
-    }
-    save_dataframes_to_excel(dataframes, "output/rapport.xlsx")

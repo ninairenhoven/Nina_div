@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<!--
+  sykkelundersokelsen_oversikt.html  –  v2 Overview page
+  ----------------------------------------------------------
+  Shows one row per municipality with TWO progress bars:
+    • Krav  – minimum required responses (from CSV Requirement column)
+    • Mål   – aspirational goal (from CSV Goal column)
+  Both thresholds are written to the CSV by the Python pipeline.
+  Data is fetched live from Dropbox (summary_kommuner.csv).
+  Clicking a municipality name opens sykkelundersokelsen_kommune_detalj.html?nr=<kommunenummer>.
+
+  For the v1 version showing only krav, see oversikt_sykkelundersokelsen.html.
+-->
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Sykkelundersøkelsen – Oversikt</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────── */
+    :root {
+      --orange:  #F26649;
+      --teal:    #71C3B4;
+      --dark:    #302026;
+      --gray:    #525350;
+      --purple2: #281ca5;       /* used only for reset-button hover */
+      --neutral-800: #211f54;
+      --neutral-600: #6e7191;
+      --neutral-300: #eff0f6;
+      --neutral-200: #f7f7fc;
+      --shadow:  0 4px 16px #14142b1a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', system-ui, sans-serif; background: var(--neutral-200); color: var(--dark); }
+
+    /* Header – sticky bar with Opinion and SLF logos */
+    header {
+      background: var(--neutral-200);
+      box-shadow: 0 2px 5px #0003;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1218px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0 8px;
+    }
+    .header-inner img { width: auto; }
+    .header-inner .logo-slf     { height: 32px; }
+    .header-inner .logo-opinion { height: 43px; }
+
+    /* Hero strip – dark banner with page title */
+    .hero {
+      background: var(--dark);
+      padding: 22px 32px;
+    }
+    .hero-inner {
+      max-width: 1218px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .hero h2 { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.2; }
+    .hero-tabs { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
+    .hero-tab {
+      padding: 5px 18px; border-radius: 48px;
+      font-size: 0.82rem; font-weight: 600; text-decoration: none;
+      color: rgba(255,255,255,0.45); transition: color .2s, background .2s;
+    }
+    .hero-tab:hover { color: #fff; }
+    .hero-tab.active { background: var(--teal); color: var(--dark); }
+
+    .container { max-width: 1218px; margin: 0 auto; padding: 22px 24px; }
+
+    /* ── Top section: summary box (left 30%) + info box (right) ────────── */
+    .top-section {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 28px;
+      align-items: stretch;
+    }
+    .info-box {
+      flex: 1;
+      background: white;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 20px 28px;
+    }
+    /* ── Summary stats box (left of top-section) ───────────────────────── */
+    .summary-box {
+      flex: 0 0 30%;
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 20px;
+      padding: 24px 28px;
+      box-shadow: var(--shadow);
+    }
+    .summary-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .stat-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--teal);
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      text-align: right;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--neutral-600);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .filter-reset {
+      padding: 5px 14px;
+      background: var(--orange);
+      border: none;
+      border-radius: 48px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      color: white;
+      transition: background .3s, transform .3s;
+      letter-spacing: .02em;
+      white-space: nowrap;
+    }
+    .filter-reset:hover:not(:disabled) { background: var(--purple2); transform: translateY(-3px); }
+    .filter-reset:disabled { background: var(--neutral-300); color: var(--neutral-600); cursor: default; }
+
+    /* ── Filter selects styled as column headers ─────────────────────────── */
+    thead th select.col-filter {
+      border: none;
+      background: transparent;
+      font-size: 0.7rem;
+      font-family: inherit;
+      font-weight: 700;
+      color: var(--neutral-600);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      cursor: pointer;
+      padding: 0;
+      width: 100%;
+    }
+    thead th select.col-filter:focus { outline: none; }
+    thead th:has(select.col-filter) { cursor: default; }
+    thead th:has(select.col-filter):hover { color: var(--neutral-600); }
+
+    /* ── Table ──────────────────────────────────────────────────────────── */
+    /* overflow-x: auto enables horizontal scrolling on narrow viewports */
+    .table-wrap {
+      background: white;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+    }
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--neutral-300);
+    }
+    .table-header h2 { font-size: 1rem; font-weight: 700; color: var(--neutral-800); }
+    .col-search-btn {
+      background: none; border: none; cursor: pointer; padding: 0 0 0 6px;
+      color: var(--neutral-600); font-size: 1.6rem; vertical-align: middle;
+      opacity: 0.6; transition: opacity .2s;
+    }
+    .col-search-btn:hover { opacity: 1; }
+    .col-search-btn.active { opacity: 1; color: var(--orange); }
+    .col-search {
+      display: none;
+      margin-top: 4px;
+      width: 100%;
+      border: none;
+      border-bottom: 1px solid var(--neutral-300);
+      background: transparent;
+      font-size: 0.72rem;
+      font-family: inherit;
+      font-weight: 400;
+      color: var(--dark);
+      padding: 2px 0;
+      letter-spacing: normal;
+      text-transform: none;
+    }
+    .col-search:focus { outline: none; border-bottom-color: var(--orange); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      padding: 6px 18px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--neutral-600);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      text-align: left;
+      white-space: nowrap;    /* prevent header text from wrapping to a second line */
+      background: var(--neutral-200);
+      border-bottom: 1px solid var(--neutral-300);
+      cursor: pointer;        /* all columns are sortable */
+      user-select: none;
+      transition: color .2s;
+    }
+    thead th:hover { color: var(--orange); }
+    thead th.num { text-align: right; }
+    /* CSS tooltip */
+    [data-tooltip] { position: relative; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; font-size: 0.75rem; font-weight: 400;
+      white-space: nowrap; padding: 4px 8px; border-radius: 4px;
+      pointer-events: none; opacity: 0; transition: opacity .15s;
+      text-transform: none; letter-spacing: normal;
+    }
+    [data-tooltip]:hover::after { opacity: 1; }
+    tbody tr { border-bottom: 1px solid var(--neutral-300); transition: background .15s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--neutral-200); }
+    td { padding: 11px 18px; font-size: 0.875rem; color: var(--gray); }
+    td.navn { font-weight: 600; color: var(--dark); }
+    /* Prevent browser default blue/purple link colours from showing after onmouseout clears the inline style */
+    td.navn a:link, td.navn a:visited { color: inherit; }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    td.clickable { cursor: pointer; }
+    td.clickable:hover { color: var(--orange); text-decoration: underline; }
+    .badge.clickable { cursor: pointer; transition: opacity .2s; }
+    .badge.clickable:hover { opacity: .75; }
+
+    /* ── Progress bars ──────────────────────────────────────────────────── */
+    /* Each progress cell contains an optional threshold label + bar + % */
+    .progress-cell { min-width: 180px; }
+    .threshold-label {
+      font-size: 0.72rem; color: #a8aac0; font-weight: 600;
+      white-space: nowrap; text-align: right; margin-bottom: 4px;
+    }
+    .progress-wrap { display: flex; align-items: center; gap: 10px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; }
+    .progress-bar-bg {
+      height: 8px;
+      background: var(--neutral-300);
+      border-radius: 48px;
+      overflow: hidden;
+    }
+    .progress-bar-fill { height: 100%; border-radius: 48px; transition: width .4s; }
+    /* Colour thresholds: red < 60 %, yellow 60–99 %, green ≥ 100 % */
+    .fill-red    { background: #f15f5b; }
+    .fill-yellow { background: #fce164; }
+    .fill-green  { background: var(--teal); }
+    .fill-goal   { background: #6A96AE; }  /* used for goal (mål) bars */
+    .pct-label {
+      font-size: 0.75rem; font-variant-numeric: tabular-nums;
+      width: 38px; text-align: right; color: var(--neutral-600); font-weight: 700;
+    }
+
+    /* ── Size category badges ───────────────────────────────────────────── */
+    /* One colour per category (1–5), matching kategoriNr in JS */
+    .badge {
+      display: inline-block; padding: 3px 10px;
+      border-radius: 48px; font-size: 0.72rem; font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-1 { background: #e8f4fd; color: #1a6fb5; }
+    .badge-2 { background: #e9f7ef; color: #1e8c4a; }
+    .badge-3 { background: #fef9e7; color: #9a6d00; }
+    .badge-4 { background: #fdecea; color: #c0392b; }
+    .badge-5 { background: #f3e8fd; color: #7d3c98; }
+
+    .no-results { padding: 48px; text-align: center; color: var(--neutral-600); font-size: 0.9rem; }
+
+    footer {
+      text-align: center; padding: 16px 24px 32px;
+      font-size: 0.75rem; color: var(--neutral-600);
+    }
+    footer a { color: var(--neutral-600); text-decoration: none; }
+    footer a:hover { color: var(--orange); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="https://www.opinion.no/" target="_blank"><img class="logo-opinion" src="logo/Opinion_Logo_Horizontal.png" alt="Opinion"></a>
+    <a href="https://syklistforeningen.no/" target="_blank"><img class="logo-slf" src="logo/SLF_logo_farge.png" alt="Syklistforeningen"></a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h2>Sykkelundersøkelsen 2026</h2>
+    <nav class="hero-tabs">
+      <a class="hero-tab active" href="sykkelundersokelsen_oversikt.html">Oversikt</a>
+      <a class="hero-tab" href="sykkelundersokelsen_kommune_detalj.html?nr=total">Tidsserie</a>
+    </nav>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Two-column section: summary stats on the left, requirements info on the right -->
+  <div class="top-section">
+
+    <!-- Summary stats box -->
+    <div class="summary-box">
+      <div class="summary-grid">
+        <div class="stat-item">
+          <div class="stat-label">Totalt antall svar</div>
+          <div class="stat-value" id="card-respondenter"></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Antall kommuner</div>
+          <div class="stat-value" id="row-count"></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Antall oppfylt krav</div>
+          <div class="stat-value" id="card-over-krav"></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Antall over 60%</div>
+          <div class="stat-value" id="card-over-60"></div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Snitt kravoppnåelse</div>
+          <div class="stat-value" id="card-snitt-krav"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Requirements information box -->
+    <div class="info-box">
+      <p style="font-size:0.9rem;color:var(--gray);line-height:1.5">
+        Kommunale resultater kan utarbeides dersom det er tilstrekkelig antall svar i kommunen. Minimumskrav er basert på innbyggertall:
+      </p>
+      <ul style="font-size:0.9rem;color:var(--gray);line-height:1.7;margin-top:10px;padding-left:18px">
+        <li>Over 200 000 innbyggere: minst 200 svar</li>
+        <li>100 000 – 200 000: minst 100 svar</li>
+        <li>50 000 – 100 000: minst 75 svar</li>
+        <li>Under 50 000: minst 50 svar</li>
+      </ul>
+      <p style="font-size:0.9rem;color:var(--gray);line-height:1.5;margin-top:10px">
+        Vi anbefaler å sikte høyere enn minimumskravet – flere svar gir mer pålitelige resultater.
+      </p>
+      <p style="margin-top:14px">
+        <a href="https://syklistforeningen.no/sykkelundersokelsen/" target="_blank" style="font-size:0.9rem;color:var(--teal);font-weight:600">syklistforeningen.no/sykkelundersokelsen/</a>
+      </p>
+    </div>
+
+  </div>
+
+  <div class="table-wrap">
+    <div class="table-header">
+      <div>
+        <h2>Kommuner</h2>
+        <p style="font-size:0.82rem;color:var(--teal);margin-top:3px">Klikk på kommunenavn for tidsserie</p>
+      </div>
+      <button class="filter-reset" id="btn-reset" onclick="resetFilters()" disabled>Nullstill filtre</button>
+    </div>
+    <table>
+      <!--
+        colgroup pins text columns to fixed widths so the two progress-bar
+        columns (no width set) share whatever space remains on wider screens.
+        On narrow screens the table scrolls horizontally (overflow-x: auto on .table-wrap).
+      -->
+      <colgroup>
+        <col style="width:48px">
+        <col style="width:150px">
+        <col style="width:130px">
+        <col style="width:120px">
+        <col style="width:80px">
+        <col>  <!-- Krav progress bar – takes remaining space -->
+        <col>  <!-- Mål progress bar – takes remaining space -->
+      </colgroup>
+      <thead>
+        <tr>
+          <th onclick="sortBy('nr')">Nr ↕</th>
+          <th onclick="sortBy('navn')">
+            Kommune ↕<button class="col-search-btn" id="btn-search" onclick="toggleSearch(event)" title="Søk kommune">⌕</button>
+            <input type="text" id="filter-navn" class="col-search" placeholder="Søk…" oninput="render()">
+          </th>
+          <th>
+            <select id="filter-fylke" class="col-filter">
+              <option value="">Fylke</option>
+              <!-- populated dynamically from CSV data -->
+            </select>
+          </th>
+          <th>
+            <select id="filter-kategori" class="col-filter">
+              <option value="">Størrelse</option>
+              <option value="1">Under 20 000</option>
+              <option value="2">20 000–49 999</option>
+              <option value="3">50 000–99 999</option>
+              <option value="4">100 000–199 999</option>
+              <option value="5">Over 200 000</option>
+            </select>
+          </th>
+          <th class="num" onclick="sortBy('antall')">Svar ↕</th>
+          <th class="progress-cell" onclick="sortBy('pct')">Kravoppnåelse ↕</th>
+          <th class="progress-cell" onclick="sortBy('pctMaal')">Måloppnåelse ↕</th>
+        </tr>
+      </thead>
+      <!-- Rows injected by render() -->
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="no-results" id="no-results" style="display:none">Ingen kommuner matcher filtrene.</div>
+  </div>
+
+</div>
+
+<footer>
+  <!-- Timestamp read from the first line of summary_kommuner.csv -->
+  <span id="footer-ts"></span>
+  <br><br><a href="https://www.opinion.no" target="_blank">Opinion.no</a> | <a href="https://www.syklistforeningen.no/" target="_blank">Syklistforeningen.no</a>
+</footer>
+
+<script>
+// ── Data sources ───────────────────────────────────────────────────────────
+const SUMMARY_URL = "https://dl.dropboxusercontent.com/scl/fi/wby0wyt9a8y03ybk7fxzy/summary_kommuner.csv?rlkey=n1kntyk90t826sbg7l5ix2et0&st=0t1r78nb";
+
+// ── Size category lookup tables ────────────────────────────────────────────
+// KAT_LABELS maps the numeric category (1–5) to the label used in the CSV.
+// KAT_NUM is the reverse mapping, used to look up the numeric key from a label.
+const KAT_LABELS = {
+  1: "Under 20 000", 2: "20 000–49 999", 3: "50 000–99 999",
+  4: "100 000–199 999", 5: "Over 200 000"
+};
+const KAT_NUM = Object.fromEntries(Object.entries(KAT_LABELS).map(([k, v]) => [v, k]));
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+// Converts "YYYY-MM-DD HH:MM" to Norwegian long-form, e.g. "15. april 2026 kl. 09:30"
+function formatTimestamp(ts) {
+  const [date, time] = ts.split(' ');
+  if (!date) return ts;
+  const [y, m, d] = date.split('-');
+  const months = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+  return `${+d}. ${months[+m - 1]} ${y}${time ? ' kl. ' + time : ''}`;
+}
+
+// Parses the summary CSV returned from Dropbox.
+// The first line may be "Oppdatert,YYYY-MM-DD HH:MM" (metadata); if so it is
+// stripped and stored on rows._oppdatert. BOM characters are removed.
+// Transforms raw columns into the field names used throughout this page (nr, navn, etc.)
+// and filters out malformed rows.
+function parseCSV(text) {
+  const lines = text.trim().split('\n').map(l => l.replace(/^\uFEFF/, ''));
+  let start = 0, oppdatert = null;
+  if (lines[0].startsWith('Oppdatert,')) {
+    oppdatert = lines[0].split(',')[1].trim();
+    start = 1;
+  }
+  const headers = lines[start].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows = lines.slice(start + 1).map(line => {
+    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i]);
+    return {
+      nr:               +obj.Kommunenummer,
+      navn:              obj.Kommune,
+      fylke:             obj.Fylke,
+      kommunestørrelse:  obj.Kommunestørrelse,
+      target:           +obj.Requirement,
+      goal:             +obj.Goal || 0,
+      antall:           +obj.Antall,
+      pct:              +obj.Requirement ? Math.round(+obj.Antall / +obj.Requirement * 100) : 0,
+      pctMaal:          +obj.Goal       ? Math.round(+obj.Antall / +obj.Goal        * 100) : 0,
+      // kategoriNr is used to sort Størrelse numerically (not alphabetically)
+      kategoriNr:       +(KAT_NUM[obj.Kommunestørrelse] ?? 0),
+    };
+  }).filter(r => r.nr && r.navn && r.kommunestørrelse);   // skip blank/malformed rows and rows without a size category
+  rows._oppdatert = oppdatert;
+  return rows;
+}
+
+// ── Sort state ─────────────────────────────────────────────────────────────
+let data = [], sortKey = 'navn', sortAsc = true;
+
+const DESC_FIRST = new Set(['antall', 'pct', 'pctMaal']);
+
+function restoreState() {
+  const raw = sessionStorage.getItem('oversikt_state');
+  if (!raw) return;
+  try {
+    const s = JSON.parse(raw);
+    sortKey = s.sortKey ?? sortKey;
+    sortAsc = s.sortAsc ?? sortAsc;
+    document.getElementById('filter-fylke').value    = s.fylke    ?? '';
+    document.getElementById('filter-kategori').value = s.kategori ?? '';
+    const navnInput = document.getElementById('filter-navn');
+    navnInput.value = s.navn ?? '';
+    if (s.navnOpen && s.navn) {
+      navnInput.style.display = 'block';
+      document.getElementById('btn-search').classList.add('active');
+    }
+  } catch (_) {}
+}
+
+function sortBy(key) {
+  sortAsc = sortKey === key ? !sortAsc : !DESC_FIRST.has(key);  // same column → toggle; new column → asc unless in DESC_FIRST
+  sortKey = key;
+  render();
+}
+
+// ── Filter helpers ─────────────────────────────────────────────────────────
+
+// Rebuilds the Fylke dropdown from all loaded data (unfiltered).
+function populateFylkeFilter() {
+  const sel = document.getElementById('filter-fylke');
+  const current = sel.value;
+  const fylker = [...new Set(data.map(r => r.fylke))].sort((a, b) => a.localeCompare(b, 'nb'));
+  sel.innerHTML = '<option value="">Fylke</option>';
+  fylker.forEach(f => { const o = document.createElement('option'); o.value = o.textContent = f; sel.appendChild(o); });
+  sel.value = current;
+}
+
+// Returns the subset of data that matches all active filters.
+function getFiltered() {
+  const fylke = document.getElementById('filter-fylke').value;
+  const kat   = document.getElementById('filter-kategori').value;
+  const navn  = document.getElementById('filter-navn').value.trim().toLowerCase();
+  return data.filter(r => {
+    if (fylke && r.fylke !== fylke)                        return false;
+    if (kat   && r.kommunestørrelse !== KAT_LABELS[+kat])  return false;
+    if (navn  && !r.navn.toLowerCase().includes(navn))     return false;
+    return true;
+  });
+}
+
+// Renders a single progress bar cell.
+// Shows a threshold label above ("X svar"), a colour-coded bar, and a % label.
+function progressBar(antall, threshold, pct, fillCls) {
+  const capped = Math.min(pct, 100);   // bar width capped at 100 %
+  return `
+    <div class="progress-wrap">
+      <div class="bar-col">
+        <div class="threshold-label">${threshold.toLocaleString('nb')} svar</div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill ${fillCls}" style="width:${capped}%"></div>
+        </div>
+      </div>
+      <span class="pct-label">${pct >= 100 ? '<span style="color:var(--teal);font-size:1.1rem;font-weight:800">✓</span>' : pct + '%'}</span>
+    </div>`;
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+// Re-renders the table body, summary stats, and filter state.
+function render() {
+  const rows = getFiltered().slice().sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey];
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+    return sortAsc ? (av > bv ? 1 : av < bv ? -1 : 0) : (av < bv ? 1 : av > bv ? -1 : 0);
+  });
+
+  const totalAntall  = rows.reduce((s, r) => s + r.antall, 0);
+  const overKrav     = rows.filter(r => r.antall >= r.target).length;
+  const over60       = rows.filter(r => r.pct >= 60).length;
+  const snittKrav    = rows.length ? Math.round(rows.reduce((s, r) => s + r.pct, 0) / rows.length) : 0;
+
+  document.getElementById('card-respondenter').textContent = totalAntall.toLocaleString('nb');
+  document.getElementById('row-count').textContent         = rows.length;
+  document.getElementById('card-over-krav').textContent    = overKrav;
+  document.getElementById('card-over-60').textContent      = over60;
+  document.getElementById('card-snitt-krav').textContent   = snittKrav + ' %';
+
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const fillKrav = r.pct >= 100 ? 'fill-green' : r.pct >= 60 ? 'fill-yellow' : 'fill-red';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="num">${r.nr}</td>
+      <td class="navn"><a href="sykkelundersokelsen_kommune_detalj.html?nr=${r.nr}" style="color:inherit;text-decoration:none;border-bottom:1px solid var(--neutral-300);transition:color .15s" onmouseover="this.style.color='var(--orange)'" onmouseout="this.style.color=''">${r.navn}</a></td>
+      <td class="clickable" onclick="filterByFylke('${r.fylke}')">${r.fylke}</td>
+      <td><span class="badge badge-${KAT_NUM[r.kommunestørrelse] ?? ''} clickable" onclick="filterByKategori('${r.kommunestørrelse}')">${r.kommunestørrelse}</span></td>
+      <td class="num">${r.antall}</td>
+      <td class="progress-cell">${progressBar(r.antall, r.target, r.pct, fillKrav)}</td>
+      <td class="progress-cell">${r.goal ? progressBar(r.antall, r.goal, r.pctMaal, 'fill-goal') : '–'}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('no-results').style.display = rows.length ? 'none' : 'block';
+
+  const anyFilter = document.getElementById('filter-fylke').value || document.getElementById('filter-kategori').value || document.getElementById('filter-navn').value.trim();
+  document.getElementById('btn-reset').disabled = !anyFilter;
+
+  // Persist state so it can be restored when navigating back from the detail page
+  sessionStorage.setItem('oversikt_state', JSON.stringify({
+    sortKey, sortAsc,
+    fylke:    document.getElementById('filter-fylke').value,
+    kategori: document.getElementById('filter-kategori').value,
+    navn:     document.getElementById('filter-navn').value,
+    navnOpen: document.getElementById('filter-navn').style.display === 'block',
+  }));
+}
+
+// ── Click-to-filter helpers ────────────────────────────────────────────────
+// Called when the user clicks a Fylke cell in the table.
+function filterByFylke(fylke) {
+  document.getElementById('filter-fylke').value    = fylke;
+  document.getElementById('filter-kategori').value = '';
+  render();
+}
+
+// Called when the user clicks a Størrelse badge in the table.
+function filterByKategori(label) {
+  const kat = KAT_NUM[label] ?? '';
+  document.getElementById('filter-fylke').value    = '';
+  document.getElementById('filter-kategori').value = kat;
+  render();
+}
+
+function toggleSearch(e) {
+  e.stopPropagation();
+  const input = document.getElementById('filter-navn');
+  const btn   = document.getElementById('btn-search');
+  const open  = input.style.display === 'block';
+  input.style.display = open ? 'none' : 'block';
+  btn.classList.toggle('active', !open);
+  if (!open) { input.focus(); }
+  else { input.value = ''; render(); }
+}
+
+function resetFilters() {
+  document.getElementById('filter-fylke').value    = '';
+  document.getElementById('filter-kategori').value = '';
+  const input = document.getElementById('filter-navn');
+  input.value = '';
+  input.style.display = 'none';
+  document.getElementById('btn-search').classList.remove('active');
+  render();
+}
+
+function showError(msg) {
+  document.getElementById('tbody').innerHTML =
+    `<tr><td colspan="7" style="padding:48px;text-align:center;color:#f15f5b;font-weight:600">${msg}</td></tr>`;
+}
+
+// ── Data loading ───────────────────────────────────────────────────────────
+async function loadData() {
+  document.getElementById('tbody').innerHTML =
+    '<tr><td colspan="7" style="padding:48px;text-align:center;color:#6e7191">Laster data…</td></tr>';
+  try {
+    const sumRes = await fetch(SUMMARY_URL).then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); });
+
+    data = parseCSV(sumRes);
+
+    populateFylkeFilter();
+    restoreState();
+    render();
+
+    const ts = data._oppdatert;
+    document.getElementById('footer-ts').textContent = ts
+      ? 'Oppdatert ' + formatTimestamp(ts)
+      : 'Hentet: ' + new Date().toLocaleString('nb-NO', { dateStyle: 'long', timeStyle: 'short' });
+  } catch (e) {
+    showError(`Kunne ikke laste data: ${e.message}`);
+  }
+}
+
+// ── Event listeners ────────────────────────────────────────────────────────
+document.getElementById('filter-fylke').addEventListener('change',   render);
+document.getElementById('filter-kategori').addEventListener('change', render);
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const input = document.getElementById('filter-navn');
+    if (input.style.display === 'block') toggleSearch(e);
+  }
+});
+
+loadData();
+</script>
+</body>
+</html>

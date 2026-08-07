@@ -61,12 +61,14 @@
     .header-actions { display: flex; align-items: center; gap: 8px; }
 
     /* ── Hero ────────────────────────────────────────────────────────────── */
-    .hero { background: var(--dark); padding: 14px 32px; }
+    .hero { background: var(--dark); padding: 14px 32px 14px 16px; }
     .hero-inner { max-width: 1000px; margin: 0 auto; text-align: center; }
     .hero p  { font-size: 1.2rem; font-weight: 800; color: white; letter-spacing: -.02em; display: flex; align-items: baseline; justify-content: center; gap: 10px; }
 
     #eventor-link-row a { color: var(--teal); text-decoration: none; font-weight: 600; opacity: 0.85; font-size: 0.75rem; }
     #eventor-link-row a:hover { opacity: 1; text-decoration: underline; }
+    #hero-link { grid-column: 2; }
+    a#pm-link { grid-column: 3; justify-self: center; font-weight: 800; font-size: 0.82rem; color: #B8E2DA; }
     #liveResLink { font-size: 0.82rem; }
     #liveResLink a { color: var(--teal-dark); font-weight: 600; text-decoration: none; }
     #liveResLink a:hover { text-decoration: underline; }
@@ -77,7 +79,7 @@
     .hero-nav { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px; }
     .hero-date { font-size: 1rem; font-weight: 800; color: #B8E2DA; letter-spacing: -.01em; flex-shrink: 0; }
 
-    #eventor-link-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 6px; }
+    #eventor-link-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: end; margin-top: 6px; }
     .btn-reload-events {
       flex: none; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--neutral-300);
       background: var(--neutral-200); font-family: inherit; font-size: 0.82rem; font-weight: 600;
@@ -99,7 +101,11 @@
       display: none; position: fixed; top: calc(var(--header-h, 52px) + 6px); left: 50%; transform: translateX(-50%);
       background: white; border-radius: 12px; box-shadow: var(--shadow);
       min-width: 312px; max-height: 320px; overflow-y: auto; z-index: 200; padding: 4px 0;
+      scrollbar-width: thin; scrollbar-color: #bbb #f0f0f0;
     }
+    .velg-lop-panel::-webkit-scrollbar { width: 4px; }
+    .velg-lop-panel::-webkit-scrollbar-track { background: #f0f0f0; border-radius: 2px; }
+    .velg-lop-panel::-webkit-scrollbar-thumb { background: #bbb; border-radius: 2px; }
     .velg-lop-panel.open { display: block; }
     .velg-lop-item {
       padding: 10px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
@@ -170,10 +176,12 @@
     .tracked-person.found  { background: var(--green-light); border: 1px solid var(--green-dark); }
     .tracked-person .ttime {
       font-size: 0.92rem; font-weight: 800; font-variant-numeric: tabular-nums;
-      color: var(--neutral-800);
+      color: var(--neutral-800); text-align: center;
     }
     .tracked-person .tname  { font-size: 0.88rem; font-weight: 700; color: var(--dark); }
     .tracked-person .tdetail { font-size: 0.78rem; font-weight: 600; color: var(--green-dark); text-align: right; }
+    .class-link { cursor: pointer; }
+    .class-link:hover { text-decoration: underline; }
 
     /* ── Stats ───────────────────────────────────────────────────────────── */
     .stats-bar { font-size: 0.82rem; font-weight: 600; color: var(--neutral-600); margin-bottom: 14px; padding: 0 2px; }
@@ -236,25 +244,27 @@
     }
     thead th.sortable { cursor: pointer; user-select: none; }
     thead th.sortable:hover { color: white; }
-    thead th .sort-icon { margin-left: 4px; opacity: 0.35; font-style: normal; font-size: 0.65rem; }
+    thead th .sort-icon { margin-left: 2px; opacity: 0.35; font-style: normal; font-size: 0.65rem; }
     thead th.sort-asc .sort-icon,
     thead th.sort-desc .sort-icon { opacity: 1; color: var(--teal); }
     tbody tr { border-bottom: 1px solid var(--neutral-300); transition: background .15s; }
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover td { background: var(--neutral-200); }
-    td { padding: 6px 6px; font-size: 0.875rem; color: var(--gray); }
+    td { padding: 3px 6px; font-size: 0.875rem; color: var(--gray); min-height: 33px; height: 33px; }
     td.name { font-weight: 600; color: var(--dark); width: 35%; }
-    td.time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--neutral-800); white-space: nowrap; padding-left: 18px; padding-right: 6px; }
-    th.time { width: 1px; white-space: nowrap; padding-left: 18px; padding-right: 6px; }
+    td.time { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--neutral-800); white-space: nowrap; padding-left: 8px; padding-right: 8px; text-align: center; }
+    th.time { width: 1px; white-space: nowrap; padding-left: 8px; padding-right: 8px; text-align: center; }
 
     td.filterable { cursor: pointer; }
     td.filterable:hover { text-decoration: underline; }
 
-    tr.tracked td       { background: var(--green-light); }
+    tr.tracked td       { background: #E8F5F1; }
     tr.tracked td.name  { color: var(--green-dark); }
-    tr.tracked:hover td { background: var(--green-hover); }
+    tr.tracked:hover td { background: #D8EDE8; }
+    tr.oppsal td        { background: #eaf2f7; }
+    tr.oppsal:hover td  { background: #d8eaf3; }
 
-    .hidden { display: none; }
+    .hidden { display: none !important; }
 
     /* ── Oppsal råtasser table ──────────────────────────────────────────────── */
     .oppsal-table-wrap { overflow-x: auto; margin: 0; border-radius: 0 0 14px 14px; }
@@ -280,16 +290,16 @@
     .oppsal-table-wrap td:nth-child(3) { width: 23%; padding-left: 8px; padding-right: 8px; }
 
     /* ── Section spacing ────────────────────────────────────────────────────── */
-    #oppsalCard { margin-bottom: 32px; }
+    #oppsalCard { margin-bottom: 20px; }
     #liveRaatCard { padding: 0 10px 10px; }
 
     /* ── Main table (inside tracked-card) ───────────────────────────────────── */
     .main-table-wrap { overflow-x: auto; margin: 0; border-radius: 0 0 14px 14px; }
     .main-table-wrap table { width: 100%; border-collapse: collapse; }
     .main-table-wrap thead th { background: var(--blue-header); }
-    .main-table-wrap th.time        { min-width: 72px; }
+    .main-table-wrap th.time        { min-width: 56px; }
     .main-table-wrap th[data-col="name"]  { min-width: 160px; }
-    .main-table-wrap th[data-col="class"] { min-width: 100px; }
+    .main-table-wrap th[data-col="class"] { min-width: 110px; }
     .main-table-wrap th[data-col="club"]  { min-width: 130px; }
 
     /* ── Show-list button ───────────────────────────────────────────────────── */
@@ -364,11 +374,12 @@
       display: flex; justify-content: space-between; align-items: baseline;
       margin-bottom: 4px;
     }
-    .live-row2 { display: flex; }
-    .live-pname    { font-size: 1rem;   font-weight: 700; color: var(--dark); }
+    .live-row2 { display: flex; align-items: center; }
+    .live-timer { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 0.82rem; color: var(--neutral-600); }
+    .live-pname    { font-size: 0.88rem; font-weight: 700; color: var(--dark); }
     .live-pclass   { font-size: 0.78rem; font-weight: 600; color: var(--green-dark); }
     .live-blue .live-pclass { color: var(--blue-text); }
-    .live-pdetails { font-size: 0.88rem; font-weight: 600; color: var(--neutral-600); font-variant-numeric: tabular-nums; }
+    .live-pdetails { font-size: 0.78rem; font-weight: 600; color: var(--neutral-600); font-variant-numeric: tabular-nums; }
   </style>
 </head>
 <body>
@@ -396,6 +407,7 @@
     </div>
     <div id="eventor-link-row" class="hidden">
       <a id="hero-link" href="#" target="_blank"></a>
+      <a id="pm-link" href="#" target="_blank" class="hidden">PM</a>
     </div>
     <select id="eventSelect" style="display:none" disabled>
       <option value="">Laster arrangementer…</option>
@@ -464,7 +476,7 @@
   // ── Configuration ──────────────────────────────────────────────────────────
   // Local dev: leave as '' (Flask handles the routes).
   // Production: set to your Worker URL, e.g. 'https://eventor-startliste.yourname.workers.dev'
-  const WORKER_URL = '';
+  const WORKER_URL = '/eventor';
 
   const TRACKED = [
     "Nina Iren Hoven",
@@ -497,7 +509,14 @@
     return ratassNames.has(fullName) || ratassNamesLC.has((fullName || '').toLowerCase());
   }
 
+  function isTooOldForRatass(cls) {
+    const m = cls.match(/^[DdHh]\s*(\d+)/);
+    return m ? parseInt(m[1], 10) >= 13 : false;
+  }
+
   function isOppsalRunner(c) {
+    if (isTooOldForRatass(c.class)) return false;
+    if (/^[AB]/.test(c.class)) return false;
     return isRatass(c.fullName)
         || (c.club.toLowerCase().includes('oppsal') && isOppsalClass(c.class))
         || pinnedRunners.has(c.fullName);
@@ -762,10 +781,21 @@
   }
 
 
+  // ── localStorage helpers (silently degrade in private browsing) ────────────
+  function lsGet(key) { try { return lsGet(key); } catch { return null; } }
+  function lsSet(key, val) { try { lsSet(key, String(val)); } catch {} }
+  function lsRemove(key) { try { lsRemove(key); } catch {} }
+
   // ── UI helpers ─────────────────────────────────────────────────────────────
-  function setMessage(html) {
-    document.getElementById('message').innerHTML =
-      html ? `<div class="error-msg">${html}</div>` : '';
+  function setMessage(text) {
+    const el = document.getElementById('message');
+    el.innerHTML = '';
+    if (text) {
+      const div = document.createElement('div');
+      div.className = 'error-msg';
+      div.textContent = text;
+      el.appendChild(div);
+    }
   }
 
   function updateHero(eventId) {
@@ -780,9 +810,11 @@
         : ev.name;
       link.href = `https://eventor.orientering.no/Events/Show/${eventId}`;
       link.textContent = `eventor.orientering.no/Events/Show/${eventId}`;
+      document.getElementById('pm-link').classList.add('hidden');
       row.classList.remove('hidden');
     } else {
       document.getElementById('hero-sub').textContent = 'Velg et løp';
+      document.getElementById('pm-link').classList.add('hidden');
       row.classList.add('hidden');
     }
   }
@@ -798,10 +830,16 @@
       <div class="tracked-person found">
         <div class="ttime">${fmtTime(c.startTime) || '–'}</div>
         <div class="tname">${TRACKED_DISPLAY[c.fullName] || c.firstName}</div>
-        <div class="tdetail">${c.class}</div>
+        <div class="tdetail"><span class="class-link" data-class="${c.class.replace(/"/g, '&quot;')}">${c.class}</span></div>
       </div>`).join('');
     card.innerHTML = `<details open><summary>Fjoven + Fjogstad</summary><div class="tracked-list">${rows}</div></details>`;
     card.classList.remove('hidden');
+    card.querySelectorAll('.class-link').forEach(el => {
+      el.addEventListener('click', () => {
+        pendingClassFilter = el.dataset.class;
+        loadStartList();
+      });
+    });
   }
 
   function showEventPreview(eventId) {
@@ -812,6 +850,7 @@
     }
     document.getElementById('oppsalCard').classList.add('hidden');
     document.getElementById('startList').innerHTML = '';
+    loadEventDocs(eventId);
     renderTrackedForEvent(eventId);
     document.getElementById('startList').innerHTML = `
       <div style="display:flex; flex-direction:column; gap:6px;">
@@ -897,6 +936,7 @@
   let trackedStartsByEvent = {}; // eventId → [competitor, ...]
   let cachedStartListEventId = null;
   let tableFilter = { classes: new Set(), club: '', name: '' };
+  let pendingClassFilter = null;  // class name to pre-select on next showTable()
   let tableSort   = { col: 'startTime', dir: 1 };
   let tablePage   = 1;
   const PAGE_SIZE = 80;
@@ -904,25 +944,67 @@
   // ── Oppsal card state ─────────────────────────────────────────────────────
   let oppsalCompetitors = [];
   let oppsalSort = { col: 'startTime', dir: 1 };
-  let startOppsalVisible = localStorage.getItem('startOppsalVisible') === 'true';
+  let startOppsalVisible = lsGet('startOppsalVisible') === 'true';
 
   // ── Tab + live state ──────────────────────────────────────────────────────
-  let activeTab = localStorage.getItem('activeTab') || 'start';
-  let liveRefreshTimer = null;
+  let activeTab = lsGet('activeTab') || 'start';
+  let liveTimerInterval = null;
   let liveLastFetched = null;
+
+  function elapsedSince(hhmm) {
+    if (!hhmm) return '';
+    const [h, m] = hhmm.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return '';
+    const now = new Date();
+    const elapsed = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) - (h * 3600 + m * 60);
+    if (elapsed < 0) return '';
+    return `${Math.floor(elapsed / 60)}:${String(elapsed % 60).padStart(2, '0')}`;
+  }
+
+  function deriveStartHHMM(finishDisp, raceMs) {
+    if (!finishDisp || raceMs == null) return '';
+    const [h, m] = finishDisp.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return '';
+    const startS = (h * 3600 + m * 60) - raceMs / 1000;
+    if (startS < 0) return '';
+    return `${Math.floor(startS / 3600).toString().padStart(2, '0')}:${Math.floor((startS % 3600) / 60).toString().padStart(2, '0')}`;
+  }
+
+  function tickLiveTimers() {
+    document.querySelectorAll('.live-timer[data-start]').forEach(el => {
+      el.textContent = elapsedSince(el.dataset.start);
+    });
+  }
+
+  function ensureLiveTimer() {
+    if (liveTimerInterval) return;
+    liveTimerInterval = setInterval(tickLiveTimers, 1000);
+  }
+
+  function stopLiveTimer() {
+    if (liveTimerInterval) { clearInterval(liveTimerInterval); liveTimerInterval = null; }
+  }
   let liveInputOpen = false;
   let liveIsVerified = false;
+  let liveIsFutureRace = false;
   let liveAllEntries = [];
   let liveOfficialEntries = null;
-  let liveRaatVisible = localStorage.getItem('liveRaatVisible') === 'true';
-  let liveRaatSort = localStorage.getItem('liveRaatSort') || 'start';
+  let liveRaatVisible = lsGet('liveRaatVisible') === 'true';
+  let liveRaatSort = lsGet('liveRaatSort') || 'start';
 
   function buildTableFilters(competitors) {
     const classes = [...new Set(competitors.map(c => c.class))].sort(compareClasses);
     const allClubs = [...new Set(competitors.map(c => c.club).filter(Boolean))].sort((a, b) => a.localeCompare(b));
     // Pin Oppsal to top with a separator; null renders as a disabled divider option.
     const oppsalClub = allClubs.find(c => c.toLowerCase().includes('oppsal'));
-    if (!tableFilter.club && oppsalClub) tableFilter.club = oppsalClub;
+    if (pendingClassFilter !== null) {
+      tableFilter.classes = new Set([pendingClassFilter]);
+      tableFilter.club = '';
+      pendingClassFilter = null;
+    } else if (!tableFilter.club && oppsalClub) {
+      tableFilter.club = oppsalClub;
+      tablePage = 1;
+    }
     const clubs = oppsalClub ? [oppsalClub, null, ...allClubs.filter(c => c !== oppsalClub)] : allClubs;
 
     const panel = document.getElementById('classMultiselectPanel');
@@ -941,9 +1023,16 @@
       });
     });
 
-    document.getElementById('filterClub').innerHTML =
-      '<option value="">Alle klubber</option>' +
-      clubs.map(c => c === null ? '<option disabled>──────────────</option>' : `<option value="${c}">${c}</option>`).join('');
+    if (oppsalClub) {
+      document.getElementById('filterClub').innerHTML =
+        '<option value="">Alle klubber</option>' +
+        `<option value="${oppsalClub}">${oppsalClub}</option>` +
+        `<optgroup label="─────────────">${allClubs.map(c => `<option value="${c}">${c}</option>`).join('')}</optgroup>`;
+    } else {
+      document.getElementById('filterClub').innerHTML =
+        '<option value="">Alle klubber</option>' +
+        allClubs.map(c => `<option value="${c}">${c}</option>`).join('');
+    }
     document.getElementById('filterClub').value = tableFilter.club;
 
     updateClassBtn();
@@ -952,7 +1041,7 @@
   function updateClassBtn() {
     const btn = document.getElementById('classMultiselectBtn');
     const n = tableFilter.classes.size;
-    btn.textContent = n ? `${n} klasse${n > 1 ? 'r' : ''} valgt` : 'Alle klasser';
+    btn.textContent = n ? [...tableFilter.classes].join(', ') : 'Alle klasser';
     btn.classList.toggle('has-selection', n > 0);
   }
 
@@ -977,18 +1066,20 @@
     );
 
     const sorted = [...filtered].sort(sortCompare);
-
     const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
     if (tablePage > totalPages) tablePage = totalPages;
     const page = sorted.slice((tablePage - 1) * PAGE_SIZE, tablePage * PAGE_SIZE);
 
-    document.getElementById('startListTbody').innerHTML = page.map(c => `
-      <tr class="${c.tracked ? 'tracked' : ''}">
+    const highlightOppsal = !tableFilter.club;
+    document.getElementById('startListTbody').innerHTML = page.map(c => {
+      const isOppsal = highlightOppsal && !c.tracked && c.club.toLowerCase().includes('oppsal');
+      return `<tr class="${c.tracked ? 'tracked' : isOppsal ? 'oppsal' : ''}">
         <td class="time">${fmtTime(c.startTime) || '–'}</td>
         <td class="name">${c.firstName} ${c.lastName}</td>
         <td class="filterable" data-filter-class="${c.class.replace(/"/g, '&quot;')}">${c.class}</td>
         <td class="filterable" data-filter-club="${c.club.replace(/"/g, '&quot;')}">${shortClub(c.club)}</td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
     document.querySelectorAll('.main-table-wrap thead th.sortable').forEach(th => {
       const col = th.dataset.col;
@@ -1068,8 +1159,11 @@
     document.getElementById('filterClub').addEventListener('change', function () {
       tableFilter.club = this.value; tablePage = 1; renderTable();
     });
+    let _nameDebounce;
     document.getElementById('filterName').addEventListener('input', function () {
-      tableFilter.name = this.value; tablePage = 1; renderTable();
+      const v = this.value;
+      clearTimeout(_nameDebounce);
+      _nameDebounce = setTimeout(() => { tableFilter.name = v; tablePage = 1; renderTable(); }, 150);
     });
     document.getElementById('clearFilters').addEventListener('click', () => {
       tableFilter = { classes: new Set(), club: '', name: '' };
@@ -1131,7 +1225,7 @@
     const eventId = document.getElementById('eventSelect').value;
     if (!eventId) return;
     startOppsalVisible = true;
-    localStorage.setItem('startOppsalVisible', 'true');
+    lsSet('startOppsalVisible', 'true');
 
     setMessage('');
     oppsalSort = { col: 'startTime', dir: 1 };
@@ -1158,7 +1252,7 @@
     const eventId = document.getElementById('eventSelect').value;
     if (!eventId) return;
     startOppsalVisible = false;
-    localStorage.setItem('startOppsalVisible', 'false');
+    lsSet('startOppsalVisible', 'false');
     setMessage('');
 
     if (cachedStartListEventId === eventId && allCompetitors.length) {
@@ -1236,16 +1330,16 @@
       document.getElementById('velgLopBtn').disabled = false;
       const sel = document.getElementById('eventSelect');
       const today = new Date().toISOString().slice(0, 10);
-      const savedId   = localStorage.getItem('lastEventId');
-      const savedDate = localStorage.getItem('lastEventDate');
+      const savedId   = lsGet('lastEventId');
+      const savedDate = lsGet('lastEventDate');
       const ids = [...sel.options].map(o => o.value);
       const autoId = (savedId && savedDate === today && ids.includes(savedId))
         ? savedId
         : (allEvents.find(e => e.date >= today) || allEvents[allEvents.length - 1])?.id;
       if (autoId) {
         sel.value = autoId;
-        localStorage.setItem('lastEventId', autoId);
-        localStorage.setItem('lastEventDate', today);
+        lsSet('lastEventId', autoId);
+        lsSet('lastEventDate', today);
         updateHero(autoId);
         showEventPreview(autoId);
         if (activeTab === 'live') initLiveTab(autoId);
@@ -1254,6 +1348,51 @@
       setMessage(`Kunne ikke laste arrangementer: ${e.message}`);
       document.getElementById('eventSelect').innerHTML = '<option value="">Feil ved lasting</option>';
     }
+  }
+
+  // ── Event documents (PM link, live URL) ───────────────────────────────────
+  const docsByEvent = {};        // eventId → resolved json (after fetch completes)
+  const docsFetchByEvent = {};   // eventId → Promise (while fetch is in flight)
+  const docLiveUrlByEvent = {};  // eventId → liveUrl (populated after fetch)
+
+  function _applyEventDocs(eventId, json) {
+    if (!json || document.getElementById('eventSelect').value !== eventId) return;
+    const applyDocLink = (el, url) => {
+      if (url) {
+        el.href = url;
+        el.style.opacity = '';
+        el.style.pointerEvents = '';
+        el.style.cursor = '';
+      } else {
+        el.removeAttribute('href');
+        el.style.opacity = '0.35';
+        el.style.pointerEvents = 'none';
+        el.style.cursor = 'default';
+      }
+      el.classList.remove('hidden');
+    };
+    applyDocLink(document.getElementById('pm-link'), json.pmUrl);
+    if (json.liveUrl) docLiveUrlByEvent[eventId] = json.liveUrl;
+  }
+
+  function loadEventDocs(eventId) {
+    if (docsByEvent[eventId] !== undefined) {
+      _applyEventDocs(eventId, docsByEvent[eventId]);
+      return Promise.resolve(docsByEvent[eventId]);
+    }
+    if (docsFetchByEvent[eventId]) {
+      return docsFetchByEvent[eventId].then(() => _applyEventDocs(eventId, docsByEvent[eventId]));
+    }
+    const p = fetch(`${WORKER_URL}/eventdocs?eventId=${eventId}`)
+      .then(r => r.ok ? r.json() : {})
+      .then(json => {
+        docsByEvent[eventId] = json;
+        _applyEventDocs(eventId, json);
+        return json;
+      })
+      .catch(() => { docsByEvent[eventId] = null; });
+    docsFetchByEvent[eventId] = p;
+    return p;
   }
 
   // ── Råtass member list ─────────────────────────────────────────────────────
@@ -1297,7 +1436,7 @@
   // ── Tab switching ──────────────────────────────────────────────────────────
   function switchTab(tab) {
     activeTab = tab;
-    localStorage.setItem('activeTab', tab);
+    lsSet('activeTab', tab);
     document.getElementById('tab-start').classList.toggle('hidden', tab !== 'start');
     document.getElementById('tab-live').classList.toggle('hidden', tab !== 'live');
     document.getElementById('tabStartBtn').classList.toggle('active', tab === 'start');
@@ -1306,25 +1445,9 @@
     if (tab === 'live') {
       const eventId = document.getElementById('eventSelect').value;
       if (eventId) initLiveTab(eventId);
-      startLiveRefresh();
     } else {
-      stopLiveRefresh();
+      stopLiveTimer();
     }
-  }
-
-  function startLiveRefresh() {
-    stopLiveRefresh();
-    liveRefreshTimer = setInterval(() => {
-      if (activeTab !== 'live') return;
-      const eventId = document.getElementById('eventSelect').value;
-      if (!eventId) return;
-      const raceId = localStorage.getItem(`liveRaceId:${eventId}`);
-      if (raceId) loadLiveByRaceId(raceId, eventId, true);
-    }, 30000);
-  }
-
-  function stopLiveRefresh() {
-    if (liveRefreshTimer) { clearInterval(liveRefreshTimer); liveRefreshTimer = null; }
   }
 
   // ── Live results ───────────────────────────────────────────────────────────
@@ -1370,13 +1493,24 @@
       const resp = await fetch(`${WORKER_URL}/livelink?eventId=${eventId}`);
       const json = await resp.json().catch(() => ({}));
       if (json.raceId) {
-        localStorage.setItem(`liveRaceId:${eventId}`, json.raceId);
+        lsSet(`liveRaceId:${eventId}`, json.raceId);
         liveIsVerified = json.verified === 'ok' ? 'ok' : json.verified === 'mismatch' ? 'mismatch' : false;
         setLiveResLink(json.raceId, eventId);
         loadLiveByRaceId(json.raceId, eventId);
         return;
       }
     } catch {}
+    // No saved race ID — check if Eventor documents have a live URL
+    await loadEventDocs(eventId).catch(() => {});
+    const docUrl = docLiveUrlByEvent[eventId];
+    if (docUrl) {
+      const m = docUrl.match(/comp=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]+)/i);
+      if (m) {
+        liveIsVerified = false;
+        loadLiveByRaceId(m[1], eventId);
+        return;
+      }
+    }
     document.getElementById('liveResLink').classList.add('hidden');
     showLiveUrlInput(eventId);
   }
@@ -1384,8 +1518,9 @@
   function classifyLiveEntry(status, t, finishDisp, startDisp, position) {
     const startPart  = startDisp  ? `Start ${startDisp}`  : '';
     const finishPart = finishDisp ? `Mål ${finishDisp}`   : '';
+    const canStart = !liveIsFutureRace;
     if (status === 'DidNotStart') {
-      const started = startDisp && (() => {
+      const started = canStart && startDisp && (() => {
         const now = new Date();
         const [h, m] = startDisp.split(':').map(Number);
         return (now.getHours() * 60 + now.getMinutes()) > (h * 60 + m);
@@ -1400,7 +1535,12 @@
       if (position !== undefined) parts.push(`${position ?? '–'}. plass`);
       return { rowClass: 'live-done', detailParts: parts };
     }
-    return { rowClass: 'live-running', detailParts: ['Pågår…', startPart] };
+    const hasStarted = canStart && startDisp && (() => {
+      const now = new Date();
+      const [h, m] = startDisp.split(':').map(Number);
+      return (now.getHours() * 60 + now.getMinutes()) > (h * 60 + m);
+    })();
+    return { rowClass: hasStarted ? 'live-running' : 'live-bad', detailParts: [startPart] };
   }
 
 
@@ -1449,7 +1589,7 @@
       const resultEl = document.getElementById('liveVerifyResult');
       if (!val) {
         liveInputOpen = false;
-        localStorage.removeItem(`liveRaceId:${eventId}`);
+        lsRemove(`liveRaceId:${eventId}`);
         fetch(`${WORKER_URL}/livelink?eventId=${eventId}`, { method: 'POST' }).catch(() => {});
         document.getElementById('liveResLink').classList.add('hidden');
         showLiveUrlInput(eventId);
@@ -1526,9 +1666,19 @@
 
   async function loadLiveByRaceId(raceId, eventId, silent = false) {
     const card = document.getElementById('liveCard');
+    const eventDate = allEvents.find(e => e.id === eventId)?.date || '';
+    const today = new Date().toISOString().slice(0, 10);
+    liveIsFutureRace = !!(eventDate && eventDate > today);
     if (!silent) card.innerHTML = '<div class="loading-msg">Laster resultater…</div>';
     try {
-      const resp = await fetch(`${WORKER_URL}/liveresults?raceId=${encodeURIComponent(raceId)}`);
+      const ac = new AbortController();
+      const acTimer = setTimeout(() => ac.abort(), 15000);
+      let resp;
+      try {
+        resp = await fetch(`${WORKER_URL}/liveresults?raceId=${encodeURIComponent(raceId)}`, { signal: ac.signal });
+      } finally {
+        clearTimeout(acTimer);
+      }
       if (document.getElementById('eventSelect').value !== eventId) return;
       const json = await resp.json().catch(() => ({}));
       if (document.getElementById('eventSelect').value !== eventId) return;
@@ -1536,7 +1686,7 @@
         if (!silent) card.innerHTML = `<div class="error-msg">${json.error || `HTTP ${resp.status}`}</div>`;
         return;
       }
-      localStorage.setItem(`liveRaceId:${eventId}`, raceId);
+      lsSet(`liveRaceId:${eventId}`, raceId);
       const verifiedParam = liveIsVerified === 'ok' ? 'ok' : liveIsVerified === 'mismatch' ? 'mismatch' : 'unverified';
       fetch(`${WORKER_URL}/livelink?eventId=${eventId}&raceId=${encodeURIComponent(raceId)}&verified=${verifiedParam}`, { method: 'POST' }).catch(() => {});
       liveLastFetched = new Date();
@@ -1629,16 +1779,20 @@
       const name      = TRACKED_DISPLAY[fullName] || fullName || '–';
       const startInfo = trackedStarts.find(s => s.fullName === fullName);
       const cls       = startInfo?.class || '';
-      const startDisp = startInfo ? (fmtTime(startInfo.startTime) || '') : '';
+      let startDisp = (startInfo ? fmtTime(startInfo.startTime) : '') || e.time?.startHHMM || '';
 
       const status   = e.status?.status || '';
       const t        = e.time?.time;
       const finishDisp = e.time?.finishTime
         ? new Date(e.time.finishTime).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
         : e.time?.finishHHMM || '';
+      if (!startDisp && finishDisp && t != null) startDisp = deriveStartHHMM(finishDisp, t);
       const { rowClass, detailParts } = classifyLiveEntry(status, t, finishDisp, startDisp, e.position);
 
-      const detailHtml = detailParts.filter(Boolean).join('  ·  ');
+      const parts = detailParts.filter(Boolean);
+      if (rowClass === 'live-running' && startDisp && parts.length > 0)
+        parts[0] += '  ·  ' + `<span class="live-timer" data-start="${startDisp}"></span>`;
+      const detailHtml = parts.join('  ·  ');
 
       return `<div class="live-person ${rowClass}">
         <div class="live-row1">
@@ -1655,6 +1809,7 @@
       <div class="live-list">${rows}</div>
     </div>`;
 
+    tickLiveTimers(); ensureLiveTimer();
     bindButtons();
     document.getElementById('liveRaatSection').classList.remove('hidden');
     document.getElementById('liveRaatDetails').open = liveRaatVisible;
@@ -1681,14 +1836,18 @@
 
     const rows = oppsalRunners.map(runner => {
       const entry     = liveAllEntries.find(e => e.person?.name === runner.fullName);
-      const startDisp = fmtTime(runner.startTime) || '';
+      let startDisp = fmtTime(runner.startTime) || entry?.time?.startHHMM || '';
       const status   = entry?.status?.status || '';
       const t        = entry?.time?.time;
       const finishDisp = entry?.time?.finishTime
         ? new Date(entry.time.finishTime).toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' })
         : entry?.time?.finishHHMM || '';
+      if (!startDisp && finishDisp && t != null) startDisp = deriveStartHHMM(finishDisp, t);
       const { rowClass, detailParts } = classifyLiveEntry(status, t, finishDisp, startDisp);
-      const detailHtml = detailParts.filter(Boolean).join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
+      const parts = detailParts.filter(Boolean);
+      if (rowClass === 'live-running' && startDisp && parts.length > 0)
+        parts[0] += '&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;' + `<span class="live-timer" data-start="${startDisp}"></span>`;
+      const detailHtml = parts.join('&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;');
       return {
         html: `<div class="live-person ${rowClass} live-blue">
           <div class="live-row1">
@@ -1719,11 +1878,12 @@
     const summary = document.getElementById('liveRaatSummary');
     summary.innerHTML = `Råtasser: ${oppsalRunners.length}&nbsp;deltagere<div class="lraat-sort"><span class="lraat-sort-icon">⇅</span>${sortBtns}</div>`;
     card.innerHTML = `<div class="live-list">${rows.map(r => r.html).join('')}</div>`;
+    tickLiveTimers(); ensureLiveTimer();
     summary.querySelectorAll('.lraat-sort-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         e.stopPropagation();
         liveRaatSort = btn.dataset.sort;
-        localStorage.setItem('liveRaatSort', liveRaatSort);
+        lsSet('liveRaatSort', liveRaatSort);
         renderLiveRaatCard(eventId);
       });
     });
@@ -1733,8 +1893,8 @@
   document.getElementById('eventSelect').addEventListener('change', function () {
     updateHero(this.value);
     if (this.value) {
-      localStorage.setItem('lastEventId', this.value);
-      localStorage.setItem('lastEventDate', new Date().toISOString().slice(0, 10));
+      lsSet('lastEventId', this.value);
+      lsSet('lastEventDate', new Date().toISOString().slice(0, 10));
       showEventPreview(this.value);
       if (activeTab === 'live') initLiveTab(this.value);
     }
@@ -1745,8 +1905,10 @@
     e.stopPropagation();
     const panel = document.getElementById('velgLopPanel');
     document.documentElement.style.setProperty('--header-h', document.querySelector('header').offsetHeight + 'px');
-    if (!panel.classList.contains('open')) populateVelgLopPanel();
+    const wasOpen = panel.classList.contains('open');
+    if (!wasOpen) populateVelgLopPanel();
     panel.classList.toggle('open');
+    if (!wasOpen) panel.scrollTop = panel.scrollHeight;
   });
   document.addEventListener('click', () => {
     document.getElementById('velgLopPanel').classList.remove('open');
@@ -1756,7 +1918,7 @@
   document.getElementById('tabLiveBtn').addEventListener('click', () => switchTab('live'));
   document.getElementById('liveRaatDetails').addEventListener('toggle', function () {
     liveRaatVisible = this.open;
-    localStorage.setItem('liveRaatVisible', this.open);
+    lsSet('liveRaatVisible', this.open);
     if (this.open) renderLiveRaatCard(document.getElementById('eventSelect').value);
   });
 

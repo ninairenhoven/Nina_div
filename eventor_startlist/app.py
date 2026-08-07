@@ -34,6 +34,11 @@ LIVERES_STATUS = {
 DB_PATH   = os.path.join(os.path.dirname(__file__), 'cache.db')
 CACHE_TTL = 1800  # 30 minutes
 
+_EVENT_ID_RE = re.compile(r'^\d+$')
+
+def _valid_event_id(event_id):
+    return event_id and bool(_EVENT_ID_RE.fullmatch(event_id))
+
 
 # ── SQLite cache ────────────────────────────────────────────────────────────────
 
@@ -80,7 +85,7 @@ def _cache_get(key):
             row = con.execute(
                 'SELECT value, cached_date, expires_at FROM cache WHERE key = ?', (key,)
             ).fetchone()
-        if row and row[1] == today and row[2] > now:
+        if row and row[2] > now:
             return row[0]
     except Exception as e:
         app.logger.warning('cache_get failed for %s: %s', key, e)
@@ -228,15 +233,29 @@ def _liveres_results(comp):
                     except (TypeError, ValueError):
                         cs_int = 0
                         time_ms = None
+                    start_hhmm = None
+                    if start_cs:
+                        start_s = int(start_cs) / 100
+                        start_hhmm = f'{int(start_s // 3600):02d}:{int((start_s % 3600) // 60):02d}'
                     finish_hhmm = None
                     if time_ms is not None and start_cs:
                         finish_s = (int(start_cs) + cs_int) / 100
                         finish_hhmm = f'{int(finish_s // 3600):02d}:{int((finish_s % 3600) // 60):02d}'
+                    # If no start_cs but we have finish_hhmm, derive start from finish − race time
+                    if not start_hhmm and finish_hhmm and cs_int:
+                        finish_parts = finish_hhmm.split(':')
+                        finish_s2 = int(finish_parts[0]) * 3600 + int(finish_parts[1]) * 60
+                        start_s2 = finish_s2 - cs_int / 100
+                        start_hhmm = f'{int(start_s2 // 3600):02d}:{int((start_s2 % 3600) // 60):02d}'
                     time_obj = None
-                    if time_ms is not None:
-                        time_obj = {'time': time_ms}
+                    if time_ms is not None or start_hhmm:
+                        time_obj = {}
+                        if time_ms is not None:
+                            time_obj['time'] = time_ms
                         if finish_hhmm:
                             time_obj['finishHHMM'] = finish_hhmm
+                        if start_hhmm:
+                            time_obj['startHHMM'] = start_hhmm
                     entries.append({
                         'person': {'name': runner.get('name', ''), 'club': runner.get('club', '')},
                         'class': cls_name,
@@ -267,7 +286,7 @@ def my_events():
 @app.route('/startlist')
 def startlist():
     event_id = request.args.get('eventId')
-    if not event_id:
+    if not _valid_event_id(event_id):
         return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
     cache_key = f'startlist:{event_id}'
     cached = _cache_get(cache_key)
@@ -287,7 +306,7 @@ def startlist():
 @app.route('/entries')
 def entries():
     event_id = request.args.get('eventId')
-    if not event_id:
+    if not _valid_event_id(event_id):
         return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
     cache_key = f'entries:{event_id}'
     cached = _cache_get(cache_key)
@@ -325,7 +344,7 @@ def pinned_events():
         )
 
     event_id = request.args.get('eventId')
-    if not event_id:
+    if not _valid_event_id(event_id):
         return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
 
     if request.method == 'DELETE':
@@ -381,7 +400,7 @@ def pinned_runners():
 @app.route('/livelink', methods=['GET', 'POST'])
 def livelink():
     event_id = request.args.get('eventId')
-    if not event_id:
+    if not _valid_event_id(event_id):
         return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
     if request.method == 'GET':
         with _db() as con:
@@ -508,10 +527,49 @@ def _parse_eventor_results(xml_text):
     return entries
 
 
+@app.route('/eventdocs')
+def event_docs():
+    event_id = request.args.get('eventId')
+    if not _valid_event_id(event_id):
+        return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
+    cache_key = f'eventdocs:{event_id}'
+    cached = _cache_get(cache_key)
+    if cached:
+        return Response(cached, status=200, mimetype='application/json')
+    try:
+        resp = eventor_get(f'/events/documents?eventIds={event_id}')
+        if not resp.ok:
+            return Response('{}', status=200, mimetype='application/json')
+        pm_url = None
+        live_url = None
+        innbydelse_url = None
+        for m in re.finditer(r'<Document\b([^>]*?)/>', resp.text):
+            attrs  = m.group(1)
+            type_m = re.search(r'\btype="([^"]+)"', attrs)
+            url_m  = re.search(r'\burl="([^"]+)"', attrs)
+            name_m = re.search(r'\bname="([^"]+)"', attrs)
+            if not url_m:
+                continue
+            doc_type = type_m.group(1) if type_m else ''
+            name     = name_m.group(1) if name_m else ''
+            url      = url_m.group(1).replace('&amp;', '&')
+            if doc_type == 'Program' or name.upper() == 'PM':
+                pm_url = url
+            elif doc_type == 'Invitation' or 'innbydelse' in name.lower() or 'invitation' in name.lower():
+                innbydelse_url = url
+            elif 'liveres.live' in url or 'time4o' in url.lower():
+                live_url = url
+        result = json.dumps({'pmUrl': pm_url, 'innbydelseUrl': innbydelse_url, 'liveUrl': live_url})
+        _cache_set(cache_key, result, ttl=3600)
+        return Response(result, status=200, mimetype='application/json')
+    except Exception as e:
+        return Response(json.dumps({'error': str(e)}), status=500, mimetype='application/json')
+
+
 @app.route('/eventresults')
 def event_results():
     event_id = request.args.get('eventId')
-    if not event_id:
+    if not _valid_event_id(event_id):
         return Response('{"error":"Missing eventId"}', status=400, mimetype='application/json')
     cache_key = f'eventresults:{event_id}'
     cached = _cache_get(cache_key)
@@ -549,4 +607,4 @@ def ratass_members_route():
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5001))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true', host='0.0.0.0', port=port)

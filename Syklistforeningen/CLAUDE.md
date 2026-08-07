@@ -33,8 +33,8 @@ utils.py                        ← shared helpers (load_lookups, add_kommune_fy
 setup_befolkning.py             ← one-time SSB data conversion (not part of main pipeline)
 debug.py                        ← pyreadstat diagnostics → debug.log
 
-dashboard/                                          ← all dashboard files
-  mockup_sykkelundersokelsen_opinion_v2.html        ← overview page (all municipalities)
+sykkelundersøkelsen_datainnsamling_dashboard/                                          ← all dashboard files
+  oversikt_sykkelundersokelsen.html        ← overview page (all municipalities)
   kommune_detail.html                               ← per-municipality detail page
   logo/
     Opinion_Logo_Horizontal.png
@@ -61,9 +61,9 @@ dashboard/                                          ← all dashboard files
 
 ## Dashboard
 
-Two HTML files in `dashboard/` that fetch CSVs directly from Dropbox and render in the browser — no server needed.
+Two HTML files in `sykkelundersøkelsen_datainnsamling_dashboard/` that fetch CSVs directly from Dropbox and render in the browser — no server needed.
 
-- **`mockup_sykkelundersokelsen_opinion_v2.html`** — overview table with filter dropdowns (Fylke, Kommunestørrelse, Kommune) and sortable columns (including Fremgang). Summary pills show total respondents, kommuner count, kommuner i mål, and snitt fremgang. Clicking a municipality name navigates to the detail page. Clicking a Fylke cell or Størrelse badge filters the table.
+- **`oversikt_sykkelundersokelsen.html`** — overview table with filter dropdowns (Fylke, Kommunestørrelse, Kommune) and sortable columns (including Fremgang). Summary pills show total respondents, kommuner count, kommuner i mål, and snitt fremgang. Clicking a municipality name navigates to the detail page. Clicking a Fylke cell or Størrelse badge filters the table.
 - **`kommune_detail.html`** — per-municipality page (opened via `?nr=<kommunenummer>`). Hero bar shows municipality name, fylke, innbyggere, størrelse, and mål. Shows a donut chart (progress % vs target, colour-coded red/yellow/teal) and a bar+line combo timeline (daily responses left axis, cumulative right axis). The right axis uses fixed step size (`target/10`, or `target/5` for target=75) so the target value always falls on a tick, highlighted in teal.
 
 The "Oppdatert" timestamp in the footer is read from the first line of `summary_kommuner.csv`.

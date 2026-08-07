@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Secrets
+.env
+.env.*
+.env_*
+dropbox_token.txt
+
+# Tool config
+.claude/
+.cache
+
+# Project-specific archives/old versions
+digipost/gammelt/
+Syklistforeningen/dashbord v1/
+Syklistforeningen/*.zip
+
+# OS
+.DS_Store
+Thumbs.db

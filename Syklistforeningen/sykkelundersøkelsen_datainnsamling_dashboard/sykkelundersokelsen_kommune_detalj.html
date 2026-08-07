@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<!--
+  sykkelundersokelsen_kommune_detalj.html  –  v2 Municipality detail page
+  -------------------------------------------------------
+  Opened via sykkelundersokelsen_oversikt.html with ?nr=<kommunenummer>.
+  Shows:
+    • A progress card with collected count + two horizontal bars (krav and mål)
+    • A bar + line combo timeline: daily responses (bars, left axis) and
+      cumulative total (line, right axis)
+
+  Data is fetched live from two Dropbox CSVs:
+    • summary_kommuner.csv  – one row per municipality (target, name, size, etc.)
+    • detail_kommuner.csv   – one row per (municipality, date) with daily count
+
+  For the v1 version showing only krav (no mål bar), see kommune_detail.html.
+-->
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>Kommunedetaljer – Sykkelundersøkelsen</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+  <style>
+    /* ── Design tokens ─────────────────────────────────────────────────── */
+    :root {
+      --orange:  #F26649;
+      --teal:    #71C3B4;
+      --dark:    #302026;
+      --gray:    #525350;
+      --neutral-800: #211f54;
+      --neutral-600: #6e7191;
+      --neutral-300: #eff0f6;
+      --neutral-200: #f7f7fc;
+      --shadow:  0 4px 16px #14142b1a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', system-ui, sans-serif; background: var(--neutral-200); color: var(--dark); }
+
+    /* Header – sticky bar with Opinion and SLF logos */
+    header {
+      background: var(--neutral-200);
+      box-shadow: 0 2px 5px #0003;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 1218px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0 8px;
+    }
+    .header-inner img { width: auto; }
+    .header-inner .logo-slf     { height: 32px; }
+    .header-inner .logo-opinion { height: 43px; }
+
+    /* Hero strip – dark banner with page title */
+    .hero {
+      background: var(--dark);
+      padding: 22px 32px;
+    }
+    .hero-inner {
+      max-width: 1218px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .hero h2 { font-size: 1.8rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; line-height: 1.2; }
+
+    /* Municipality info card – back link + name + metadata on one line */
+    .kommune-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 16px 24px;
+      margin-bottom: 24px;
+    }
+    .kommune-info { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+    .kommune-info h2 { font-size: 1.4rem; font-weight: 800; color: var(--dark); line-height: 1.2; }
+    .kommune-info span { font-size: 0.9rem; font-weight: 600; color: var(--gray); }
+    .kommune-info .sep { color: var(--neutral-300); }
+
+    /* ── Municipality search ─────────────────────────────────────────────── */
+    .muni-search-wrap { position: relative; display: inline-flex; align-items: center; gap: 12px; }
+    .muni-search-btn {
+      background: none; border: none; cursor: pointer; padding: 0;
+      color: var(--teal); font-size: 1.9rem; line-height: 1;
+      opacity: 0.7; transition: opacity .2s;
+    }
+    .muni-search-btn:hover, .muni-search-btn.active { opacity: 1; color: var(--orange); }
+    .muni-search-input {
+      display: none;
+      border: none;
+      border-bottom: 1px solid var(--neutral-300);
+      background: transparent;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 600;
+      color: var(--dark);
+      padding: 2px 0;
+      width: 14ch;
+    }
+    .muni-search-input:focus { outline: none; border-bottom-color: var(--orange); }
+    .muni-clear-btn {
+      background: none; border: none; cursor: pointer; padding: 0 2px;
+      color: var(--neutral-600); font-size: 1.1rem; line-height: 1;
+      opacity: 0.45; transition: opacity .2s, color .2s;
+    }
+    .muni-clear-btn:hover { opacity: 1; color: var(--orange); }
+    .muni-search-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: white;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      min-width: 220px;
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 200;
+    }
+    .muni-search-dropdown div {
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: var(--dark);
+      font-weight: 600;
+    }
+    .muni-search-dropdown div:hover { background: var(--neutral-200); color: var(--orange); }
+
+    .container { max-width: 1218px; margin: 0 auto; padding: 22px 24px; }
+
+    /* Two-column layout: progress card (fixed 340px) + timeline card (flexible) */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+    /* Stack vertically on narrow screens */
+    @media (max-width: 780px) {
+      .charts-grid { grid-template-columns: 1fr; }
+    }
+
+    .chart-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+    }
+    .chart-card h3 {
+      font-size: 0.9rem; font-weight: 700; color: var(--neutral-600);
+      text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: 24px; text-align: center;
+    }
+
+    /* Large collected-count number at top of progress card */
+    .collected-count {
+      font-size: 2.2rem; font-weight: 800; color: var(--neutral-800);
+      text-align: center; margin-bottom: 28px; line-height: 1;
+    }
+    .collected-count span {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--neutral-600); margin-top: 4px; text-transform: uppercase; letter-spacing: .06em;
+    }
+
+    /* Individual bar section (one for krav, one for mål) */
+    .bar-section { margin-bottom: 20px; }
+    .bar-section:last-child { margin-bottom: 0; }
+    .bar-header {
+      display: flex; justify-content: space-between; align-items: baseline;
+      margin-bottom: 6px;
+    }
+    .bar-header .bar-label { font-size: 0.78rem; font-weight: 700; color: var(--neutral-600); text-transform: uppercase; letter-spacing: .06em; }
+    /* CSS tooltip for elements with data-tooltip attribute */
+    [data-tooltip] { position: relative; cursor: default; }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: #333; color: #fff; font-size: 0.75rem; font-weight: 400;
+      white-space: nowrap; padding: 4px 8px; border-radius: 4px;
+      pointer-events: none; opacity: 0; transition: opacity .15s;
+      text-transform: none; letter-spacing: normal;
+    }
+    [data-tooltip]:hover::after { opacity: 1; }
+    .bar-header .bar-pct   { font-size: 1.1rem; font-weight: 800; color: var(--neutral-800); }
+    .bar-track {
+      height: 12px; background: var(--neutral-300);
+      border-radius: 48px; overflow: hidden; margin-bottom: 4px;
+    }
+    .bar-fill { height: 100%; border-radius: 48px; transition: width .6s ease; }
+    /* Colour thresholds: red < 60 %, yellow 60–99 %, green ≥ 100 % */
+    .bar-fill.fill-green  { background: var(--teal); }
+    .bar-fill.fill-yellow { background: #fce164; }
+    .bar-fill.fill-red    { background: #f15f5b; }
+    .bar-fill.fill-goal   { background: #6A96AE; }  /* goal (mål) bar – matches summary page */
+
+    /* Fixed height so the chart fills its card consistently */
+    .timeline-canvas-wrap { position: relative; flex: 1; min-height: 300px; }
+
+    /* Used while loading or on error */
+    .state-msg {
+      padding: 80px;
+      text-align: center;
+      color: var(--neutral-600);
+      font-size: 0.9rem;
+    }
+    .state-msg.error { color: #f15f5b; font-weight: 600; }
+
+    footer {
+      text-align: center; padding: 16px 24px 32px;
+      font-size: 0.75rem; color: var(--neutral-600);
+    }
+    footer a { color: var(--neutral-600); text-decoration: none; }
+    footer a:hover { color: var(--orange); }
+
+    .hero-tabs { display: flex; justify-content: center; gap: 6px; margin-top: 16px; }
+    .hero-tab {
+      padding: 5px 18px; border-radius: 48px;
+      font-size: 0.82rem; font-weight: 600; text-decoration: none;
+      color: rgba(255,255,255,0.45); transition: color .2s, background .2s;
+    }
+    .hero-tab:hover { color: #fff; }
+    .hero-tab.active { background: var(--teal); color: var(--dark); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="https://www.opinion.no/" target="_blank"><img class="logo-opinion" src="logo/Opinion_Logo_Horizontal.png" alt="Opinion"></a>
+    <a href="https://syklistforeningen.no/" target="_blank"><img class="logo-slf" src="logo/SLF_logo_farge.png" alt="Syklistforeningen"></a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-inner">
+    <h2>Sykkelundersøkelsen 2026</h2>
+    <nav class="hero-tabs">
+      <a class="hero-tab" href="sykkelundersokelsen_oversikt.html">Oversikt</a>
+      <a class="hero-tab active" href="sykkelundersokelsen_kommune_detalj.html?nr=total">Tidsserie</a>
+    </nav>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Municipality info card – populated by init() once data is loaded -->
+  <div class="kommune-card">
+    <div class="kommune-info">
+      <div class="muni-search-wrap">
+        <h2 id="hero-navn">Laster…</h2>
+        <button class="muni-clear-btn" id="btn-clear-muni" onclick="location.href='?nr=total'" title="Vis total for alle kommuner" style="display:none">×</button>
+        <button class="muni-search-btn" id="btn-muni-search" onclick="toggleMuniSearch()" title="Søk kommune">⌕</button>
+        <input type="text" id="muni-search-input" class="muni-search-input" placeholder="Søk..." oninput="filterMuniSearch()">
+        <div class="muni-search-dropdown" id="muni-search-dropdown"></div>
+      </div>
+      <span class="sep" id="hero-bef-sep">|</span>
+      <span id="hero-befolkning">–</span>
+      <span class="sep" id="hero-stor-sep">|</span>
+      <span id="hero-storrelse">–</span>
+      <!-- Krav and Mål shown only when available (hidden via display:none until set) -->
+      <span class="sep" id="hero-krav-sep" style="display:none">|</span>
+      <span id="hero-krav" style="display:none" data-tooltip="Minimum antall svar for utarbeidelse av rapport"></span>
+      <span class="sep" id="hero-maal-sep" style="display:none">|</span>
+      <span id="hero-maal" style="display:none"></span>
+    </div>
+  </div>
+
+  <!-- Replaced with .charts-grid once data loads; shows loading/error messages until then -->
+  <div id="main-content" class="state-msg">Laster data…</div>
+
+
+</div>
+
+<footer>
+  <!-- Timestamp read from the first line of summary_kommuner.csv -->
+  <span id="footer-ts"></span>
+  <br><br><a href="https://www.opinion.no" target="_blank">Opinion.no</a> | <a href="https://www.syklistforeningen.no/" target="_blank">Syklistforeningen.no</a>
+</footer>
+
+<script>
+// ── Data sources ───────────────────────────────────────────────────────────
+const SUMMARY_URL = "https://dl.dropboxusercontent.com/scl/fi/wby0wyt9a8y03ybk7fxzy/summary_kommuner.csv?rlkey=n1kntyk90t826sbg7l5ix2et0&st=0t1r78nb";
+const DETAIL_URL  = "https://dl.dropboxusercontent.com/scl/fi/105llsgoxtmgvd2gzhwht/detail_kommuner.csv?rlkey=28mkl4ge0og27dt8hb9iou915&st=wo4ryu7d";
+
+// Read chart colours from CSS custom properties so they stay in sync with the stylesheet
+const CSS = getComputedStyle(document.documentElement);
+const C_TEAL   = CSS.getPropertyValue('--teal').trim();
+const C_ORANGE = CSS.getPropertyValue('--orange').trim();
+
+// Goal (mål) values are read from the Goal column in summary_kommuner.csv,
+// written by the Python pipeline from the GOALS dict in sykkelundersokelsen_process.py.
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+// Converts "YYYY-MM-DD HH:MM" to Norwegian long-form, e.g. "15. april 2026 kl. 09:30"
+function formatTimestamp(ts) {
+  const [date, time] = ts.split(' ');
+  if (!date) return ts;
+  const [y, m, d] = date.split('-');
+  const months = ['januar','februar','mars','april','mai','juni','juli','august','september','oktober','november','desember'];
+  return `${+d}. ${months[+m - 1]} ${y}${time ? ' kl. ' + time : ''}`;
+}
+
+// Parses a CSV string into an array of plain objects.
+// Handles optional "Oppdatert,YYYY-MM-DD HH:MM" metadata on line 1 and BOM stripping.
+function parseCSV(text) {
+  const lines = text.trim().split('\n').map(l => l.replace(/^\uFEFF/, ''));
+  let start = 0, oppdatert = null;
+  if (lines[0].startsWith('Oppdatert,')) {
+    oppdatert = lines[0].split(',')[1].trim();
+    start = 1;
+  }
+  const headers = lines[start].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const rows = lines.slice(start + 1).map(line => {
+    const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+    const obj = {};
+    headers.forEach((h, i) => obj[h] = vals[i]);
+    return obj;
+  });
+  rows._oppdatert = oppdatert;
+  return rows;
+}
+
+// ── Municipality search ────────────────────────────────────────────────────
+let allSummaryRows = [];
+
+function toggleMuniSearch() {
+  const input = document.getElementById('muni-search-input');
+  const btn   = document.getElementById('btn-muni-search');
+  const open  = input.style.display === 'block';
+  input.style.display = open ? 'none' : 'block';
+  document.getElementById('muni-search-dropdown').style.display = 'none';
+  btn.classList.toggle('active', !open);
+  if (!open) { input.value = ''; input.focus(); }
+}
+
+function filterMuniSearch() {
+  const q  = document.getElementById('muni-search-input').value.trim().toLowerCase();
+  const dd = document.getElementById('muni-search-dropdown');
+  if (!q) { dd.style.display = 'none'; return; }
+  const matches = allSummaryRows.filter(r => r.Kommune && r.Kommune.toLowerCase().includes(q)).slice(0, 10);
+  if (!matches.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = matches.map(r =>
+    `<div onclick="location.href='sykkelundersokelsen_kommune_detalj.html?nr=${+r.Kommunenummer}'">${r.Kommune}</div>`
+  ).join('');
+  dd.style.display = 'block';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.muni-search-wrap')) {
+    document.getElementById('muni-search-dropdown').style.display = 'none';
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    const input = document.getElementById('muni-search-input');
+    if (input.style.display === 'block') toggleMuniSearch();
+  }
+});
+
+// ── Page initialisation ────────────────────────────────────────────────────
+async function init() {
+  // Read kommunenummer from URL query string, e.g. ?nr=0301 or ?nr=total
+  const params = new URLSearchParams(location.search);
+  const nr = params.get('nr');
+  const isTotal = nr === 'total';
+  if (!nr) { showError('Ingen kommune valgt.'); return; }
+
+  // Fetch both CSVs in parallel
+  let summaryRows, detailRows;
+  try {
+    const [st, dt] = await Promise.all([
+      fetch(SUMMARY_URL).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+      fetch(DETAIL_URL ).then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+    ]);
+    summaryRows    = parseCSV(st);
+    allSummaryRows = summaryRows;
+    detailRows     = parseCSV(dt);
+  } catch (e) {
+    showError('Kunne ikke laste data: ' + e.message);
+    return;
+  }
+
+  // ── Total mode: aggregate across all municipalities ────────────────────
+  if (isTotal) {
+    const antall = detailRows.reduce((s, r) => s + (+r.Antall || 0), 0);
+    const goal   = summaryRows.reduce((s, r) => s + (+r.Goal || 0), 0) || null;
+
+    document.title = 'Totalt alle kommuner – Sykkelundersøkelsen';
+    document.getElementById('hero-navn').textContent = 'Alle kommuner – totalt';
+    document.getElementById('hero-befolkning').style.display = 'none';
+    document.getElementById('hero-bef-sep').style.display   = 'none';
+    document.getElementById('hero-storrelse').style.display = 'none';
+    document.getElementById('hero-stor-sep').style.display  = 'none';
+
+    const ts = summaryRows._oppdatert;
+    document.getElementById('footer-ts').textContent = ts
+      ? 'Oppdatert ' + formatTimestamp(ts)
+      : 'Hentet: ' + new Date().toLocaleString('nb-NO', { dateStyle: 'long', timeStyle: 'short' });
+
+    const content = document.getElementById('main-content');
+    content.className = 'charts-grid';
+    content.innerHTML = `
+      <div class="chart-card">
+        <h3>Antall svar</h3>
+        <div class="collected-count">${antall.toLocaleString('nb')}<span>totalt alle kommuner</span></div>
+        <div class="bar-section" id="bar-krav-section"></div>
+        <div class="bar-section" id="bar-goal-section"></div>
+      </div>
+      <div class="chart-card">
+        <div class="timeline-canvas-wrap">
+          <canvas id="timeline-chart"></canvas>
+        </div>
+      </div>`;
+
+    buildProgressBars(null, null, null, null);
+    buildTimeline(detailRows, null, goal);
+    return;
+  }
+
+  // Find this municipality's summary row and all its daily detail rows
+  const nrNum   = +nr;
+  const summary = summaryRows.find(r => +r.Kommunenummer === nrNum);
+  const rows    = detailRows.filter(r => +r.Kommunenummer === nrNum);
+
+  if (!summary && rows.length === 0) { showError('Fant ikke kommune ' + nr + '.'); return; }
+
+  // Derive key values; fall back to detail rows if summary is missing
+  const navn      = summary?.Kommune         ?? rows[0]?.Kommune         ?? nr;
+  const storrelse = summary?.Kommunestørrelse ?? rows[0]?.Kommunestørrelse ?? '–';
+  const bef       = summary?.Befolkning      ?? rows[0]?.Befolkning      ?? '';
+  const antall    = rows.reduce((s, r) => s + +r.Antall, 0);   // sum Antall across all dates
+  const krav      = summary ? +summary.Requirement : null;
+  const goal      = summary && +summary.Goal ? +summary.Goal : null;   // from CSV, set by Python
+  const pctKrav   = krav ? Math.round(antall / krav  * 100) : null;
+  const pctGoal   = goal ? Math.round(antall / goal  * 100) : null;
+
+  // Populate municipality info card
+  document.title = navn + ' – Sykkelundersøkelsen';
+  document.getElementById('hero-navn').textContent      = navn + ' kommune';
+  document.getElementById('btn-clear-muni').style.display = '';
+  document.getElementById('hero-storrelse').textContent = 'Kategori: ' + storrelse;
+  document.getElementById('hero-befolkning').textContent =
+    bef ? Number(bef).toLocaleString('nb') + ' innbyggere' : '–';
+  if (krav != null) {
+    document.getElementById('hero-krav').textContent = 'Krav: ' + krav.toLocaleString('nb') + ' svar';
+    document.getElementById('hero-krav').style.display = '';
+    document.getElementById('hero-krav-sep').style.display = '';
+  }
+  if (goal != null) {
+    document.getElementById('hero-maal').textContent = 'Mål: ' + goal.toLocaleString('nb') + ' svar';
+    document.getElementById('hero-maal').style.display = '';
+    document.getElementById('hero-maal-sep').style.display = '';
+  }
+
+  const ts = summaryRows._oppdatert;
+  document.getElementById('footer-ts').textContent = ts
+    ? 'Oppdatert ' + formatTimestamp(ts)
+    : 'Hentet: ' + new Date().toLocaleString('nb-NO', { dateStyle: 'long', timeStyle: 'short' });
+
+  // Swap loading placeholder for the two-column chart grid
+  const content = document.getElementById('main-content');
+  content.className = 'charts-grid';
+  content.innerHTML = `
+    <div class="chart-card">
+      <h3>Antall svar</h3>
+      <div class="collected-count">${antall.toLocaleString('nb')}</div>
+      <div class="bar-section" id="bar-krav-section"></div>
+      <div class="bar-section" id="bar-goal-section"></div>
+    </div>
+    <div class="chart-card">
+      <div class="timeline-canvas-wrap">
+        <canvas id="timeline-chart"></canvas>
+      </div>
+    </div>`;
+
+  buildProgressBars(krav, pctKrav, goal, pctGoal);
+  buildTimeline(rows, krav, goal);
+}
+
+// ── Progress bar card ──────────────────────────────────────────────────────
+// Returns a CSS class name based on percentage: green ≥ 100%, yellow ≥ 60%, red otherwise.
+// Note: pct is always a number when called (krav is checked for null before calling).
+function fillClass(pct) {
+  return pct >= 100 ? 'fill-green' : pct >= 60 ? 'fill-yellow' : 'fill-red';
+}
+
+// Renders the two horizontal progress bars (krav and mål).
+// Each bar shows the threshold label ("KRAV: 50 svar"), a colour-coded bar, and a %.
+function buildProgressBars(krav, pctKrav, goal, pctGoal) {
+  function barHTML(label, threshold, pct, fillCls) {
+    const disabled = threshold == null;
+    const capped   = Math.min(pct ?? 0, 100);
+    return `
+      <div style="${disabled ? 'opacity:0.28;' : ''}">
+        <div class="bar-header">
+          <span class="bar-label" ${!disabled && label === 'Krav' ? 'data-tooltip="Minimum antall svar for utarbeidelse av rapport"' : ''}>${label}${threshold != null ? ': ' + threshold.toLocaleString('nb') + ' svar' : ''}</span>
+          <span class="bar-pct">${pct != null ? (pct >= 100 && fillCls !== 'fill-goal' ? '<span style="color:var(--teal);font-size:1.1rem;font-weight:800">✓</span>' : pct + '%') : '–'}</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill ${disabled ? '' : fillCls}" style="width:${capped}%"></div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('bar-krav-section').innerHTML = barHTML('Krav', krav, pctKrav, krav != null ? fillClass(pctKrav) : '');
+  document.getElementById('bar-goal-section').innerHTML = barHTML('Mål',  goal, pctGoal, 'fill-goal');
+}
+
+// ── Axis helper ────────────────────────────────────────────────────────────
+// Returns the smallest "nice" number ≥ val (e.g. 47 → 50, 130 → 150).
+// Used for the daily left-axis max when no stepSize is available.
+function niceMax(val) {
+  if (!val || val <= 0) return 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(val)));
+  const step = mag >= 10 ? mag / 2 : mag;
+  return Math.ceil(val / step) * step;
+}
+
+// ── Timeline chart ─────────────────────────────────────────────────────────
+// Builds a bar + line combo chart:
+//   • Bars  (left axis  – yDaily):  daily response count
+//   • Line  (right axis – yCum):    cumulative total
+//   • Dotted line (yCum):           horizontal marker at the requirement (krav) value
+//
+// Axis alignment:
+//   yCum stepSize is krav/10 (or krav/5 if krav is not divisible by 10,
+//   e.g. krav=75 → stepSize=15). This guarantees a tick exactly at krav.
+//   The yCum max starts one tick above krav so there is visual breathing room,
+//   and extends further if cumulative data grows past that point.
+//   yDaily max and stepSize are derived so both axes have the same number of
+//   intervals: yDailyStep = ceil(maxDaily / numIntervals), yDailyMax = yDailyStep * numIntervals.
+//
+//   The krav and goal ticks on yCum are coloured dark teal (#1C7CA1) to stand out from the other ticks.
+function buildTimeline(rows, krav, goal) {
+  // Aggregate detail rows into a date → count map
+  const counts = {};
+  rows.forEach(r => { if (r.Dato) counts[r.Dato] = (counts[r.Dato] || 0) + +r.Antall; });
+
+  if (Object.keys(counts).length === 0) {
+    document.querySelector('.timeline-canvas-wrap').innerHTML =
+      '<p style="padding:40px;text-align:center;color:var(--neutral-600);font-size:.85rem">Ingen datodata tilgjengelig.</p>';
+    return;
+  }
+
+  // Fill in every calendar day between first date and today (gaps become 0),
+  // so the dotted requirement line extends all the way to the right axis.
+  const rawDates = Object.keys(counts).sort();
+  const first = new Date('2026-04-22');  // survey launch date
+  // Use UTC midnight to match how ISO date strings (rawDates) are parsed by new Date().
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const last  = new Date(Math.max(new Date(rawDates[rawDates.length - 1]), today));
+  const sortedDates = [];
+  for (let d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+    sortedDates.push(d.toISOString().slice(0, 10));
+  }
+
+  // Short Norwegian month abbreviations for x-axis labels
+  const months = ['jan','feb','mar','apr','mai','jun','jul','aug','sep','okt','nov','des'];
+  const labels = sortedDates.map(d => {
+    const [, m, day] = d.split('-');
+    return `${+day}. ${months[+m - 1]}`;
+  });
+
+  let cum = 0;
+  const cumData   = sortedDates.map(d => { cum += counts[d] || 0; return cum; });
+  const dailyData = sortedDates.map(d => counts[d] || 0);
+
+  // ── Right axis (yCum) tick and range calculation ───────────────────────
+  // stepSize chosen so krav always falls on a tick:
+  //   krav divisible by 10 → stepSize = krav/10  (gives 10 even intervals)
+  //   otherwise             → stepSize = krav/5   (e.g. krav=75 → step=15)
+  const stepSize = krav != null
+    ? (krav % 10 === 0 ? krav / 10 : krav / 5)
+    : undefined;
+  // Max is at least krav + one tick, and extends further if cumData exceeds that
+  const cumMax = krav != null
+    ? Math.max(krav + stepSize, Math.ceil(Math.max(...cumData) / stepSize) * stepSize)
+    : undefined;
+
+  // ── Left axis (yDaily) range calculation ──────────────────────────────
+  // Match the number of intervals on the right axis so gridlines align.
+  // yDailyStep = requirement/100 rounded up; same number of intervals as yCum.
+  const numIntervals  = (stepSize != null && cumMax != null) ? cumMax / stepSize : undefined;
+  let yDailyStep      = krav != null ? Math.ceil(krav / 100) : undefined;
+  let yDailyMax       = (yDailyStep != null && numIntervals != null) ? yDailyStep * numIntervals : niceMax(Math.max(...dailyData));
+  // If any daily count exceeds yDailyMax, scale to the next multiple of the original yDailyMax.
+  if (yDailyStep != null && Math.max(...dailyData) > yDailyMax) {
+    const multiplier = Math.ceil(Math.max(...dailyData) / yDailyMax);
+    yDailyMax  = yDailyMax * multiplier;
+    yDailyStep = yDailyMax / numIntervals;
+  }
+
+  new Chart(document.getElementById('timeline-chart'), {
+    data: {
+      labels,
+      datasets: [
+        // Daily bars – left axis
+        {
+          type: 'bar',
+          label: 'Svar per dag',
+          data: dailyData,
+          backgroundColor: C_TEAL + '66',
+          borderColor: C_TEAL,
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: 'yDaily',
+          order: 2,
+        },
+        // Cumulative line – right axis
+        {
+          type: 'line',
+          label: 'Totalt',
+          data: cumData,
+          borderColor: C_ORANGE,
+          backgroundColor: C_ORANGE + '18',
+          borderWidth: 2.5,
+          // Hide individual points when there are many dates to avoid clutter
+          pointRadius: sortedDates.length > 20 ? 0 : 4,
+          pointHoverRadius: 5,
+          fill: true,
+          tension: 0.3,
+          yAxisID: 'yCum',
+          order: 1,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            font: { family: 'Poppins', size: 11 }, boxWidth: 12, padding: 16,
+            usePointStyle: true,
+          }
+        },
+        tooltip: {
+          usePointStyle: true,
+          // Show ISO date in tooltip header instead of the short label
+          callbacks: { title: items => sortedDates[items[0].dataIndex] }
+        },
+        // Dotted horizontal line at the krav threshold, drawn edge-to-edge across the chart area.
+        // Uses chartjs-plugin-annotation so it extends past the last x-axis tick.
+        annotation: {
+          annotations: krav != null ? {
+            kravLine: {
+              type: 'line',
+              yMin: krav,
+              yMax: krav,
+              yScaleID: 'yCum',
+              xMin: Math.floor(sortedDates.length * 0.25),
+              borderColor: '#1C7CA1',
+              borderWidth: 1,
+              borderDash: [4, 4],
+            }
+          } : {},
+        },
+      },
+      scales: {
+        x: {
+          ticks: { font: { family: 'Poppins', size: 11 }, maxRotation: 90, minRotation: 45, autoSkip: false },
+          grid: { display: false },
+        },
+        yDaily: {
+          position: 'left',
+          max: yDailyMax,
+          title: { display: true, text: 'Daglig', font: { family: 'Poppins', size: 13 }, color: '#45A290' },
+          ticks: { font: { family: 'Poppins', size: 11 }, precision: 0, color: '#45A290',
+            // Force the same step as used to compute yDailyMax so intervals match yCum
+            ...(yDailyStep != null ? { stepSize: yDailyStep } : {}),
+          },
+          grid: { color: '#eff0f6' },
+        },
+        yCum: {
+          position: 'right',
+          min: 0,
+          max: cumMax,
+          title: { display: true, text: 'Totalt', font: { family: 'Poppins', size: 13 }, color: C_ORANGE },
+          ticks: {
+            precision: 0,
+            font: { family: 'Poppins', size: 11 },
+            // Krav and goal ticks are drawn in dark teal (#1C7CA1) to stand out;
+            // all other ticks use the regular orange axis colour.
+            color: ctx => (ctx.tick.value === krav || ctx.tick.value === goal) ? '#1C7CA1' : C_ORANGE,
+            ...(stepSize != null ? { stepSize } : {}),
+          },
+          // Don't draw right-axis gridlines across the chart area (left axis owns gridlines)
+          grid: { drawOnChartArea: false },
+        }
+      }
+    }
+  });
+}
+
+function showError(msg) {
+  const el = document.getElementById('main-content');
+  el.className = 'state-msg error';
+  el.textContent = msg;
+}
+
+init();
+</script>
+</body>
+</html>

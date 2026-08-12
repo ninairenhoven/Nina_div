@@ -486,9 +486,14 @@ def main():
     print("Columns:", ", ".join(df.columns.tolist()))
     print("Shape:", df.shape)
 
-    df["date_dt"] = df["date"].apply(
-        lambda s: SPSS_EPOCH + timedelta(seconds=s) if pd.notna(s) else None
-    )
+    def _to_date_dt(s):
+        if pd.isna(s):
+            return None
+        if isinstance(s, (pd.Timestamp, datetime)):
+            return s
+        return SPSS_EPOCH + timedelta(seconds=s)
+
+    df["date_dt"] = df["date"].apply(_to_date_dt)
     df["date_str"] = df["date_dt"].apply(
         lambda d: d.strftime('%Y-%m-%d') if d is not None else None
     )
@@ -570,13 +575,18 @@ def main():
         stacked_labels_path, index=False, encoding="utf-8-sig"
     )
 
-    upload_to_dropbox(summary_path)
-    # upload_to_dropbox(data_path)  # not used by dashboard
-    upload_to_dropbox(detail_path)
-    # upload_to_dropbox(alldata_path)
-    # upload_to_dropbox(labels_path)
-    upload_to_dropbox(stacked_path)
-    upload_to_dropbox(stacked_labels_path)
+    answer = input(f"\nLast opp {summary_path.name}, {detail_path.name}, {stacked_path.name}, "
+                   f"{stacked_labels_path.name} til Dropbox? [y/N] ").strip().lower()
+    if answer == "y":
+        upload_to_dropbox(summary_path)
+        # upload_to_dropbox(data_path)  # not used by dashboard
+        upload_to_dropbox(detail_path)
+        # upload_to_dropbox(alldata_path)
+        # upload_to_dropbox(labels_path)
+        upload_to_dropbox(stacked_path)
+        upload_to_dropbox(stacked_labels_path)
+    else:
+        print("Hopper over Dropbox-opplasting.")
 
     print(f"\nSaving {out_path.name} ({len(df)} rows {suffix_label})".replace("  ", " ").rstrip())
     write_sav(df, out_path, column_labels=clabels, variable_value_labels=vlabels)
